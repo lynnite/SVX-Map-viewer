@@ -10,22 +10,26 @@
 <body>
 
   <aside class="sidebar">
-    <h2>Select Map</h2>
-    <ul id="image-list">
-      <li data-src="images/trijent-0.webp" class="active">Trijent Dam</li>
-      <li data-src="images/kutjevo-0.webp">Kutjevo Refinery</li>
-      <li data-src="images/maints-0.webp">Cargo Carriage</li>
-    </ul>
-    <div class="controls">
-      <button id="zoom-in">+</button>
-      <button id="zoom-out">−</button>
-      <button id="reset-view">Reset</button>
+    <div class="sidebar-header">
+      <h2>Map Collection</h2>
     </div>
+    
+    <ul id="image-list">
+      <li data-src="images/maints-0.webp" class="active">Main World Map</li>
+      <li data-src="images/kutjevo-0.webp">Dungeon Level 1</li>
+      <li data-src="images/trijent-0.webp">Regional Overview</li>
+    </ul>
   </aside>
 
   <main class="viewport">
     <div id="panzoom-container">
-      <img id="map-image" src="images/trijent-0.webp" alt="Map Viewer">
+      <img id="map-image" src="images/maints-0.webp" alt="Map Viewer">
+    </div>
+
+    <div class="floating-controls">
+      <button id="zoom-in" title="Zoom In">+</button>
+      <button id="zoom-out" title="Zoom Out">−</button>
+      <button id="reset-view" title="Reset View">Reset</button>
     </div>
   </main>
 
