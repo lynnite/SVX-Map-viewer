@@ -20,15 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "fog"
   ];
 
-  const ignoreUnknownTags = ['scalar', 'sequence', 'mapping'].map(kind => 
-    new jsyaml.Type('!', {
-      kind: kind,
-      multi: true,
-      construct: data => data
-    })
-  );
-  const SS14_SCHEMA = jsyaml.DEFAULT_SCHEMA.extend(ignoreUnknownTags);
-
   const panzoom = Panzoom(elem, {
     maxScale: 50,
     minScale: 0.05,
@@ -45,77 +36,100 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
   document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
 
-  function extractTransformPos(components) {
-    if (!Array.isArray(components)) return null;
+  function parseEntitiesProtoGrouped(rawText) {
+    const rawEntities = [];
+    const uidMap = new Map();
 
-    for (const comp of components) {
-      if (!comp) continue;
-      const compType = comp.type || comp.Type;
-      if (compType === "Transform" || compType === "transform") {
-        const pos = comp.pos || comp.position || comp.Pos || comp.Position;
-        if (!pos) return null;
+    const protoBlocks = rawText.split(/(?=\n\s*-\s*proto:|\n\s*proto:)/g);
 
-        if (typeof pos === "string") {
-          const parts = pos.split(",");
-          if (parts.length >= 2) {
-            return { x: parseFloat(parts[0]), y: parseFloat(parts[1]) };
-          }
-        } else if (typeof pos === "object") {
-          const x = pos.x ?? pos.X;
-          const y = pos.y ?? pos.Y;
-          if (x !== undefined && y !== undefined) {
-            return { x: parseFloat(x), y: parseFloat(y) };
-          }
+    protoBlocks.forEach(protoBlock => {
+      const protoMatch = protoBlock.match(/proto:\s*["']?([^\s"'#\n]+)/i);
+      if (!protoMatch) return;
+
+      const currentProto = protoMatch[1];
+
+      const entitySubBlocks = protoBlock.split(/(?=\n\s*-\s*uid:)/g);
+
+      entitySubBlocks.forEach(entityBlock => {
+        const uidMatch = entityBlock.match(/uid:\s*([0-9]+)/i);
+        if (!uidMatch) return;
+
+        const uid = uidMatch[1];
+
+        const parentMatch = entityBlock.match(/parent:\s*([0-9]+)/i);
+        const parentUid = parentMatch ? parentMatch[1] : null;
+
+        let localPos = null;
+        const posMatch = entityBlock.match(/pos:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i) || 
+                         entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+
+        if (posMatch) {
+          localPos = {
+            x: parseFloat(posMatch[1]),
+            y: parseFloat(posMatch[2])
+          };
         }
-      }
-    }
-    return null;
-  }
 
-  function processEntityNode(ent) {
-    if (!ent || typeof ent !== "object") return;
-
-    const protoName = ent.protoId || ent.proto || ent.type || ent.id;
-    
-    if (protoName && typeof protoName === "string") {
-      const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
-        protoName.toLowerCase().includes(keyword.toLowerCase())
-      );
-
-      if (!isBlacklisted && ent.components) {
-        const coords = extractTransformPos(ent.components);
-        if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
-          const tileX = Math.floor(coords.x);
-          const tileY = Math.floor(Math.abs(coords.y));
-
-          parsedEntities.push({
-            proto: protoName,
-            uid: ent.uid || ent.id || "?",
-            tileX: tileX,
-            tileY: tileY
+        if (uid && localPos) {
+          uidMap.set(String(uid), {
+            uid: String(uid),
+            proto: currentProto,
+            parentUid: parentUid ? String(parentUid) : null,
+            localPos: localPos
           });
         }
+      });
+    });
+
+    uidMap.forEach(node => {
+      const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword =>
+        node.proto.toLowerCase().includes(keyword.toLowerCase())
+      );
+      if (isBlacklisted) return;
+
+      let worldX = node.localPos.x;
+      let worldY = node.localPos.y;
+      let currentParent = node.parentUid;
+      let depth = 0;
+
+      while (currentParent && uidMap.has(currentParent) && depth < 10) {
+        const parentNode = uidMap.get(currentParent);
+        if (parentNode && parentNode.localPos) {
+          worldX += parentNode.localPos.x;
+          worldY += parentNode.localPos.y;
+          currentParent = parentNode.parentUid;
+        } else {
+          break;
+        }
+        depth++;
       }
-    }
 
-    if (Array.isArray(ent.entities)) {
-      ent.entities.forEach(sub => processEntityNode(sub));
-    }
-  }
+      if (!isNaN(worldX) && !isNaN(worldY)) {
+        rawEntities.push({
+          proto: node.proto,
+          uid: node.uid,
+          rawX: worldX,
+          rawY: worldY
+        });
+      }
+    });
 
-  function scanDataTree(node) {
-    if (!node || typeof node !== "object") return;
+    if (rawEntities.length === 0) return [];
 
-    if (Array.isArray(node)) {
-      node.forEach(item => scanDataTree(item));
-      return;
-    }
+    let minX = Infinity;
+    let maxY = -Infinity;
 
-    processEntityNode(node);
+    rawEntities.forEach(item => {
+      if (item.rawX < minX) minX = item.rawX;
+      if (item.rawY > maxY) maxY = item.rawY;
+    });
 
-    if (node.entities && Array.isArray(node.entities)) {
-      node.entities.forEach(ent => scanDataTree(ent));
-    }
+    return rawEntities.map(item => ({
+      proto: item.proto,
+      uid: item.uid,
+      tileX: Math.floor(item.rawX - minX),
+      tileY: Math.floor(maxY - item.rawY)
+    }));
   }
 
   async function loadMapData(mapUrl) {
@@ -126,13 +140,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(mapUrl);
       if (!response.ok) return;
 
-      let yamlText = await response.text();
-      yamlText = yamlText.replace(/!<?!?type:[^\s\n>]+>?/gi, '');
-
-      const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
-      if (!yamlData) return;
-
-      scanDataTree(yamlData);
+      const rawText = await response.text();
+      parsedEntities = parseEntitiesProtoGrouped(rawText);
 
       console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
     } catch (err) {

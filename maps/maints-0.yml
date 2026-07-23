@@ -154,8 +154,6 @@ entities:
     - type: SpreaderGrid
     - type: GridPathfinding
     - type: Gravity
-      gravityShakeSound: !type:SoundPathSpecifier
-        path: /Audio/Effects/alert.ogg
       inherent: True
       enabled: True
     - type: DecalGrid
@@ -5337,54 +5335,16 @@ entities:
     - type: Transform
       pos: 79.5,4.5
       parent: 1
-    - type: ContainerContainer
-      containers:
-        entity_storage: !type:Container
-          showEnts: False
-          occludes: True
-          ents:
-          - 5
-          - 4
-          - 3
-        paper_label: !type:ContainerSlot
-          showEnts: False
-          occludes: True
-          ent: null
   - uid: 156
     components:
     - type: Transform
       pos: 93.5,3.5
       parent: 1
-    - type: ContainerContainer
-      containers:
-        entity_storage: !type:Container
-          showEnts: False
-          occludes: True
-          ents:
-          - 157
-          - 158
-          - 159
-          - 160
-        paper_label: !type:ContainerSlot
-          showEnts: False
-          occludes: True
-          ent: null
   - uid: 278
     components:
     - type: Transform
       pos: 86.5,8.5
       parent: 1
-    - type: ContainerContainer
-      containers:
-        entity_storage: !type:Container
-          showEnts: False
-          occludes: True
-          ents:
-          - 279
-        paper_label: !type:ContainerSlot
-          showEnts: False
-          occludes: True
-          ent: null
   - uid: 322
     components:
     - type: Transform
