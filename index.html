@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map & Image Viewer</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=2">
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
 </head>
 <body>
 
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h2>Maps</h2>
+      <h2>Map Collection</h2>
     </div>
     
     <ul id="image-list">
@@ -24,6 +24,7 @@
   <main class="viewport">
     <div id="panzoom-container">
       <img id="map-image" src="images/maints-0.webp" alt="Map Viewer">
+      <div id="tile-hover"></div>
     </div>
 
     <div class="floating-controls">
