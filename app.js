@@ -9,12 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuTitle = document.getElementById("menu-tile-title");
 
   const TILE_SIZE = 32;
-  let parsedEntities = []; // Holds loaded SS14 entity objects
+  let parsedEntities = [];
 
-  // ----------------------------------------------------
-  // ent whitelist leave empty if all
-  // ----------------------------------------------------
-  const ALLOWED_ENTITIES = [
+  const BLACKLISTED_KEYWORDS = [
+    "weather",
+    "lightning",
+    "thunder",
+    "storm",
+    "rain",
+    "fog"
   ];
 
   const panzoom = Panzoom(elem, {
@@ -43,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let yamlText = await response.text();
 
-      yamlText = yamlText.replace(/!<?!type:[^\s>]+>?/g, '');
+      yamlText = yamlText.replace(/!<?!?type:[^\s\n>]+>?/gi, '');
 
       const yamlData = jsyaml.load(yamlText);
       if (!yamlData) return;
@@ -56,9 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!currentProto || !Array.isArray(entitiesGroup)) return;
 
-        if (ALLOWED_ENTITIES.length > 0 && !ALLOWED_ENTITIES.includes(currentProto)) {
-          return;
-        }
+        const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
+          currentProto.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+        if (isBlacklisted) return;
 
         entitiesGroup.forEach(ent => {
           if (!ent.components) return;
@@ -82,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      console.log(`Successfully loaded ${parsedEntities.length} matching entities from ${mapUrl}`);
+      console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
     } catch (err) {
       console.warn("Map file failed to load or parse:", err);
     }
