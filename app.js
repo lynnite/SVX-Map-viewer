@@ -36,7 +36,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) return;
 
       const yamlText = await response.text();
-      const yamlData = jsyaml.load(yamlText);
+
+      const IgnoreCustomTagsType = new jsyaml.Type('!', {
+        kind: 'object',
+        multi: true,
+        construct: function (data) {
+          return data;
+        }
+      });
+
+      const SS14_SCHEMA = jsyaml.DEFAULT_SCHEMA.extend([IgnoreCustomTagsType]);
+      const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
 
       if (!yamlData) return;
 
@@ -75,7 +85,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn("Map file failed to load or parse:", err);
     }
   }
-  loadMapData(document.querySelector("#image-list li.active").getAttribute("data-map"));
+
+  loadMapData(document.querySelector("#image-list li.active")?.getAttribute("data-map"));
 
   let currentTileX = null;
   let currentTileY = null;
