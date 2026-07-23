@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SvX Map Viewer</title>
-  <link rel="stylesheet" href="style.css?v=2">
+  <title>Map & Image Viewer</title>
+  <link rel="stylesheet" href="style.css?v=yaml">
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 </head>
 <body>
 
- <aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>Maps</h2>
-  </div>
-  
-  <ul id="image-list">
-    <li data-src="images/maints-0.webp" class="active">Cargo Carriage</li>
-    <li data-src="images/kutjevo-0.webp">Kutjevo Refinery</li>
-    <li data-src="images/trijent-0.webp">Trijent Dam</li>
-  </ul>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Map Collection</h2>
+    </div>
+    
+    <ul id="image-list">
+      <li data-src="images/maints-0.webp" data-map="maps/maints-0.yml" class="active">Cargo Carriage</li>
+      <li data-src="images/kutjevo-0.webp" data-map="maps/kutjevo-0.yml">Kutjevo Refinery</li>
+      <li data-src="images/trijent-0.webp" data-map="maps/trijent-0.yml">Trijent Dam</li>
+    </ul>
 
-  <div class="sidebar-footer">
-    <span class="coord-label">Coords:</span>
-    <div id="tile-coords">X: 0, Y: 0</div>
-  </div>
-</aside>
+    <div class="sidebar-footer">
+      <span class="coord-label">Tile Coordinates:</span>
+      <div id="tile-coords">X: --, Y: --</div>
+    </div>
+  </aside>
 
   <main class="viewport">
     <div id="panzoom-container">
@@ -36,6 +37,13 @@
       <button id="zoom-in" title="Zoom In">+</button>
       <button id="zoom-out" title="Zoom Out">−</button>
       <button id="reset-view" title="Reset View">Reset</button>
+    </div>
+
+    <div id="context-menu">
+      <div class="menu-header" id="menu-tile-title">Tile Entities</div>
+      <ul id="entity-list">
+        <li>Right-click a tile to view prototypes</li>
+      </ul>
     </div>
   </main>
 
