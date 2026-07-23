@@ -20,6 +20,15 @@ document.addEventListener("DOMContentLoaded", () => {
     "fog"
   ];
 
+  const ignoreUnknownTags = ['scalar', 'sequence', 'mapping'].map(kind => 
+    new jsyaml.Type('!', {
+      kind: kind,
+      multi: true,
+      construct: data => data
+    })
+  );
+  const SS14_SCHEMA = jsyaml.DEFAULT_SCHEMA.extend(ignoreUnknownTags);
+
   const panzoom = Panzoom(elem, {
     maxScale: 50,
     minScale: 0.05,
@@ -48,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       yamlText = yamlText.replace(/!<?!?type:[^\s\n>]+>?/gi, '');
 
-      const yamlData = jsyaml.load(yamlText);
+      const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
       if (!yamlData) return;
 
       const blocks = Array.isArray(yamlData) ? yamlData : [yamlData];
