@@ -9,7 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuTitle = document.getElementById("menu-tile-title");
 
   const TILE_SIZE = 32;
-  let parsedEntities = [];
+  let parsedEntities = []; // Holds loaded SS14 entity objects
+
+  // ----------------------------------------------------
+  // ent whitelist leave empty if all
+  // ----------------------------------------------------
+  const ALLOWED_ENTITIES = [
+  ];
 
   const panzoom = Panzoom(elem, {
     maxScale: 50,
@@ -35,19 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(mapUrl);
       if (!response.ok) return;
 
-      const yamlText = await response.text();
+      let yamlText = await response.text();
 
-      const IgnoreCustomTagsType = new jsyaml.Type('!', {
-        kind: 'object',
-        multi: true,
-        construct: function (data) {
-          return data;
-        }
-      });
+      yamlText = yamlText.replace(/!<?!type:[^\s>]+>?/g, '');
 
-      const SS14_SCHEMA = jsyaml.DEFAULT_SCHEMA.extend([IgnoreCustomTagsType]);
-      const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
-
+      const yamlData = jsyaml.load(yamlText);
       if (!yamlData) return;
 
       const blocks = Array.isArray(yamlData) ? yamlData : [yamlData];
@@ -56,31 +54,35 @@ document.addEventListener("DOMContentLoaded", () => {
         const currentProto = block.proto;
         const entitiesGroup = block.entities;
 
-        if (currentProto && Array.isArray(entitiesGroup)) {
-          entitiesGroup.forEach(ent => {
-            if (!ent.components) return;
+        if (!currentProto || !Array.isArray(entitiesGroup)) return;
 
-            const transform = ent.components.find(c => c.type === "Transform");
-            if (transform && transform.pos) {
-              const [xStr, yStr] = transform.pos.split(",");
-              const rawX = parseFloat(xStr);
-              const rawY = parseFloat(yStr);
-
-              const tileX = Math.floor(rawX);
-              const tileY = Math.floor(Math.abs(rawY));
-
-              parsedEntities.push({
-                proto: currentProto,
-                uid: ent.uid,
-                tileX: tileX,
-                tileY: tileY
-              });
-            }
-          });
+        if (ALLOWED_ENTITIES.length > 0 && !ALLOWED_ENTITIES.includes(currentProto)) {
+          return;
         }
+
+        entitiesGroup.forEach(ent => {
+          if (!ent.components) return;
+
+          const transform = ent.components.find(c => c.type === "Transform");
+          if (transform && transform.pos) {
+            const [xStr, yStr] = transform.pos.split(",");
+            const rawX = parseFloat(xStr);
+            const rawY = parseFloat(yStr);
+
+            const tileX = Math.floor(rawX);
+            const tileY = Math.floor(Math.abs(rawY));
+
+            parsedEntities.push({
+              proto: currentProto,
+              uid: ent.uid,
+              tileX: tileX,
+              tileY: tileY
+            });
+          }
+        });
       });
 
-      console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
+      console.log(`Successfully loaded ${parsedEntities.length} matching entities from ${mapUrl}`);
     } catch (err) {
       console.warn("Map file failed to load or parse:", err);
     }
@@ -166,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (matches.length > 0) {
       matches.forEach(item => {
         const li = document.createElement("li");
-        li.textContent = item.proto;
+        li.textContent = `${item.proto} [${item.uid}]`;
         entityList.appendChild(li);
       });
     } else {
