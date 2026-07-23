@@ -3,11 +3,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const listItems = document.querySelectorAll("#image-list li");
 
 const panzoom = Panzoom(elem, {
-  maxScale: 10,
+  maxScale: 50,
   minScale: 0.1,
-  startScale: 1,
+  step: 0.3,
   canvas: true,
-  contain: "inside",
+});
+
+const viewport = document.querySelector(".viewport");
+viewport.addEventListener("wheel", (event) => {
+  panzoom.zoomWithWheel(event, { step: 0.2 });
 });
 
   const viewport = document.querySelector(".viewport");
