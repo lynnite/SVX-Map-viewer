@@ -2,11 +2,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const elem = document.getElementById("map-image");
   const listItems = document.querySelectorAll("#image-list li");
 
-  const panzoom = Panzoom(elem, {
-    maxScale: 10,
-    minScale: 0.5,
-    contain: "outside",
-  });
+const panzoom = Panzoom(elem, {
+  maxScale: 10,
+  minScale: 0.1,
+  startScale: 1,
+  canvas: true,
+  contain: "inside",
+});
 
   const viewport = document.querySelector(".viewport");
   viewport.addEventListener("wheel", panzoom.zoomWithWheel);

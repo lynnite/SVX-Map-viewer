@@ -90,9 +90,10 @@ body {
   display: inline-block;
 }
 
-#img {
-  max-width: none;
-  display: block;
+#map-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
 }
