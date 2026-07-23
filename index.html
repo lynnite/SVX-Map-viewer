@@ -9,17 +9,22 @@
 </head>
 <body>
 
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h2>Map Collection</h2>
-    </div>
-    
-    <ul id="image-list">
-      <li data-src="images/maints-0.webp" class="active">Cargo Carriage</li>
-      <li data-src="images/kutjevo-0.webp">Kutjevo Refinery</li>
-      <li data-src="images/trijent-0.webp">Trijent Dam</li>
-    </ul>
-  </aside>
+ <aside class="sidebar">
+  <div class="sidebar-header">
+    <h2>Maps</h2>
+  </div>
+  
+  <ul id="image-list">
+    <li data-src="images/maints-0.webp" class="active">Cargo Carriage</li>
+    <li data-src="images/kutjevo-0.webp">Kutjevo Refinery</li>
+    <li data-src="images/trijent-0.webp">Trijent Dam</li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <span class="coord-label">Coords:</span>
+    <div id="tile-coords">X: 0, Y: 0</div>
+  </div>
+</aside>
 
   <main class="viewport">
     <div id="panzoom-container">

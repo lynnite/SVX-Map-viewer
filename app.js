@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewport = document.querySelector(".viewport");
   const listItems = document.querySelectorAll("#image-list li");
   const tileHover = document.getElementById("tile-hover");
+  const coordsDisplay = document.getElementById("tile-coords");
 
   const TILE_SIZE = 32;
 
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateTileHover(event) {
     if (!elem.naturalWidth || !elem.naturalHeight || !elem.complete) {
       tileHover.style.display = "none";
+      coordsDisplay.textContent = "X: --, Y: --";
       return;
     }
 
@@ -42,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
       event.clientY > viewportRect.bottom
     ) {
       tileHover.style.display = "none";
+      coordsDisplay.textContent = "X: --, Y: --";
       return;
     }
 
@@ -59,16 +62,22 @@ document.addEventListener("DOMContentLoaded", () => {
       imageY >= 0 &&
       imageY < elem.naturalHeight
     ) {
-      const tileX = Math.floor(imageX / TILE_SIZE) * TILE_SIZE;
-      const tileY = Math.floor(imageY / TILE_SIZE) * TILE_SIZE;
+      const tileIndexX = Math.floor(imageX / TILE_SIZE);
+      const tileIndexY = Math.floor(imageY / TILE_SIZE);
+
+      const tileX = tileIndexX * TILE_SIZE;
+      const tileY = tileIndexY * TILE_SIZE;
 
       tileHover.style.left = `${rect.left - viewportRect.left + tileX * scaleRatio}px`;
       tileHover.style.top = `${rect.top - viewportRect.top + tileY * scaleRatio}px`;
       tileHover.style.width = `${TILE_SIZE * scaleRatio}px`;
       tileHover.style.height = `${TILE_SIZE * scaleRatio}px`;
       tileHover.style.display = "block";
+
+      coordsDisplay.textContent = `X: ${tileIndexX}, Y: ${tileIndexY}`;
     } else {
       tileHover.style.display = "none";
+      coordsDisplay.textContent = "X: --, Y: --";
     }
   }
 
@@ -84,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
       item.classList.add("active");
 
       tileHover.style.display = "none";
+      coordsDisplay.textContent = "X: --, Y: --";
 
       const newSrc = item.getAttribute("data-src");
       elem.src = newSrc;
