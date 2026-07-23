@@ -43,14 +43,6 @@ body {
   padding: 1rem 0.75rem;
 }
 
-#image-list::-webkit-scrollbar {
-  width: 6px;
-}
-#image-list::-webkit-scrollbar-thumb {
-  background: #2a2f3d;
-  border-radius: 3px;
-}
-
 #image-list li {
   padding: 0.75rem 1rem;
   margin-bottom: 0.5rem;
@@ -61,14 +53,11 @@ body {
   font-size: 0.9rem;
   color: #94a3b8;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
 }
 
 #image-list li:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: #ffffff;
-  transform: translateX(2px);
 }
 
 #image-list li.active {
@@ -76,7 +65,6 @@ body {
   color: #ffffff;
   border-color: transparent;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .viewport {
@@ -90,25 +78,33 @@ body {
   cursor: grab;
 }
 
-.viewport:active {
-  cursor: grabbing;
-}
-
 #panzoom-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
 }
 
 #map-image {
-  max-width: 90%;
-  max-height: 90%;
-  object-fit: contain;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   user-select: none;
   -webkit-user-drag: none;
   touch-action: none;
+}
+
+#tile-hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background-color: rgba(59, 130, 246, 0.4);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  display: none;
+  z-index: 10;
 }
 
 .floating-controls {
@@ -148,13 +144,8 @@ body {
   color: #ffffff;
 }
 
-.floating-controls button:active {
-  transform: scale(0.95);
-}
-
 .floating-controls #reset-view {
   font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 600;
-  letter-spacing: 0.05em;
 }
