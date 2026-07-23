@@ -45,6 +45,45 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
   document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
 
+  function processEntity(ent) {
+    if (!ent || typeof ent !== "object") return;
+
+    const protoName = ent.protoId || ent.proto || ent.id;
+    if (!protoName || typeof protoName !== "string") return;
+
+    const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
+      protoName.toLowerCase().includes(keyword.toLowerCase())
+    );
+    if (isBlacklisted) return;
+
+    if (!Array.isArray(ent.components)) return;
+
+    const transform = ent.components.find(c => c && (c.type === "Transform" || c.type === "transform"));
+    if (transform && transform.pos) {
+      let rawX, rawY;
+      if (typeof transform.pos === "string") {
+        const [xStr, yStr] = transform.pos.split(",");
+        rawX = parseFloat(xStr);
+        rawY = parseFloat(yStr);
+      } else if (typeof transform.pos === "object") {
+        rawX = parseFloat(transform.pos.x || transform.pos.X || 0);
+        rawY = parseFloat(transform.pos.y || transform.pos.Y || 0);
+      }
+
+      if (!isNaN(rawX) && !isNaN(rawY)) {
+        const tileX = Math.floor(rawX);
+        const tileY = Math.floor(Math.abs(rawY));
+
+        parsedEntities.push({
+          proto: protoName,
+          uid: ent.uid || ent.id || "?",
+          tileX: tileX,
+          tileY: tileY
+        });
+      }
+    }
+  }
+
   async function loadMapData(mapUrl) {
     parsedEntities = [];
     if (!mapUrl) return;
@@ -54,7 +93,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) return;
 
       let yamlText = await response.text();
-
       yamlText = yamlText.replace(/!<?!?type:[^\s\n>]+>?/gi, '');
 
       const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
@@ -63,37 +101,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const blocks = Array.isArray(yamlData) ? yamlData : [yamlData];
 
       blocks.forEach(block => {
-        const currentProto = block.proto;
-        const entitiesGroup = block.entities;
+        if (!block) return;
 
-        if (!currentProto || !Array.isArray(entitiesGroup)) return;
+        if (block.protoId || block.proto || block.id) {
+          processEntity(block);
+        }
 
-        const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
-          currentProto.toLowerCase().includes(keyword.toLowerCase())
-        );
-
-        if (isBlacklisted) return;
-
-        entitiesGroup.forEach(ent => {
-          if (!ent.components) return;
-
-          const transform = ent.components.find(c => c.type === "Transform");
-          if (transform && transform.pos) {
-            const [xStr, yStr] = transform.pos.split(",");
-            const rawX = parseFloat(xStr);
-            const rawY = parseFloat(yStr);
-
-            const tileX = Math.floor(rawX);
-            const tileY = Math.floor(Math.abs(rawY));
-
-            parsedEntities.push({
-              proto: currentProto,
-              uid: ent.uid,
-              tileX: tileX,
-              tileY: tileY
-            });
-          }
-        });
+        if (Array.isArray(block.entities)) {
+          block.entities.forEach(ent => processEntity(ent));
+        }
       });
 
       console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
