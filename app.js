@@ -45,42 +45,76 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
   document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
 
-  function processEntity(ent) {
+  function extractTransformPos(components) {
+    if (!Array.isArray(components)) return null;
+
+    for (const comp of components) {
+      if (!comp) continue;
+      const compType = comp.type || comp.Type;
+      if (compType === "Transform" || compType === "transform") {
+        const pos = comp.pos || comp.position || comp.Pos || comp.Position;
+        if (!pos) return null;
+
+        if (typeof pos === "string") {
+          const parts = pos.split(",");
+          if (parts.length >= 2) {
+            return { x: parseFloat(parts[0]), y: parseFloat(parts[1]) };
+          }
+        } else if (typeof pos === "object") {
+          const x = pos.x ?? pos.X;
+          const y = pos.y ?? pos.Y;
+          if (x !== undefined && y !== undefined) {
+            return { x: parseFloat(x), y: parseFloat(y) };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function processEntityNode(ent) {
     if (!ent || typeof ent !== "object") return;
 
-    const protoName = ent.protoId || ent.proto || ent.id;
-    if (!protoName || typeof protoName !== "string") return;
+    const protoName = ent.protoId || ent.proto || ent.type || ent.id;
+    
+    if (protoName && typeof protoName === "string") {
+      const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
+        protoName.toLowerCase().includes(keyword.toLowerCase())
+      );
 
-    const isBlacklisted = BLACKLISTED_KEYWORDS.some(keyword => 
-      protoName.toLowerCase().includes(keyword.toLowerCase())
-    );
-    if (isBlacklisted) return;
+      if (!isBlacklisted && ent.components) {
+        const coords = extractTransformPos(ent.components);
+        if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
+          const tileX = Math.floor(coords.x);
+          const tileY = Math.floor(Math.abs(coords.y));
 
-    if (!Array.isArray(ent.components)) return;
-
-    const transform = ent.components.find(c => c && (c.type === "Transform" || c.type === "transform"));
-    if (transform && transform.pos) {
-      let rawX, rawY;
-      if (typeof transform.pos === "string") {
-        const [xStr, yStr] = transform.pos.split(",");
-        rawX = parseFloat(xStr);
-        rawY = parseFloat(yStr);
-      } else if (typeof transform.pos === "object") {
-        rawX = parseFloat(transform.pos.x || transform.pos.X || 0);
-        rawY = parseFloat(transform.pos.y || transform.pos.Y || 0);
+          parsedEntities.push({
+            proto: protoName,
+            uid: ent.uid || ent.id || "?",
+            tileX: tileX,
+            tileY: tileY
+          });
+        }
       }
+    }
 
-      if (!isNaN(rawX) && !isNaN(rawY)) {
-        const tileX = Math.floor(rawX);
-        const tileY = Math.floor(Math.abs(rawY));
+    if (Array.isArray(ent.entities)) {
+      ent.entities.forEach(sub => processEntityNode(sub));
+    }
+  }
 
-        parsedEntities.push({
-          proto: protoName,
-          uid: ent.uid || ent.id || "?",
-          tileX: tileX,
-          tileY: tileY
-        });
-      }
+  function scanDataTree(node) {
+    if (!node || typeof node !== "object") return;
+
+    if (Array.isArray(node)) {
+      node.forEach(item => scanDataTree(item));
+      return;
+    }
+
+    processEntityNode(node);
+
+    if (node.entities && Array.isArray(node.entities)) {
+      node.entities.forEach(ent => scanDataTree(ent));
     }
   }
 
@@ -98,19 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const yamlData = jsyaml.load(yamlText, { schema: SS14_SCHEMA });
       if (!yamlData) return;
 
-      const blocks = Array.isArray(yamlData) ? yamlData : [yamlData];
-
-      blocks.forEach(block => {
-        if (!block) return;
-
-        if (block.protoId || block.proto || block.id) {
-          processEntity(block);
-        }
-
-        if (Array.isArray(block.entities)) {
-          block.entities.forEach(ent => processEntity(ent));
-        }
-      });
+      scanDataTree(yamlData);
 
       console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
     } catch (err) {
