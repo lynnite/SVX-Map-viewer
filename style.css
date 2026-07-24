@@ -252,3 +252,113 @@ body {
   color: #757575;
   font-style: italic;
 }
+
+.insert-controls {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 20;
+  background-color: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #e0e0e0;
+  max-height: 280px;
+  min-width: 200px;
+  overflow-y: auto;
+  display: none;
+}
+
+.insert-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0a0a0;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #333333;
+}
+
+.insert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.insert-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #e0e0e0;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.insert-label input[type="checkbox"] {
+  accent-color: #4db8ff;
+  cursor: pointer;
+}
+
+/* Container for the inserts dropdown details */
+.insert-dropdown {
+  margin-bottom: 6px;
+  background-color: transparent;
+}
+
+/* Custom summary row acting as the title header */
+.insert-dropdown summary {
+  list-style: none; /* Hide default browser triangle */
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem; /* Slightly smaller text */
+  padding: 4px 6px;
+}
+
+.insert-dropdown summary::-webkit-details-marker {
+  display: none; /* Hide default Chrome/Safari triangle */
+}
+
+/* Arrow indicator replacing the checkbox */
+.dropdown-arrow {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.75rem;
+  transition: transform 0.15s ease;
+}
+
+/* Rotate arrow when dropdown is open */
+.insert-dropdown[open] .dropdown-arrow {
+  transform: rotate(90deg);
+}
+
+/* Sub-box for the dropdown's variation items */
+.insert-submenu {
+  background-color: rgba(0, 0, 0, 0.35); /* Darker than insert menu background */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0px; /* Strictly square / no rounded corners */
+  padding: 6px 8px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+/* Make child variation rows smaller */
+.insert-row.child-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem; /* Slightly smaller text */
+  padding: 2px 0;
+}
+
+.insert-row.child-row label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
