@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let visibleEntities = [];
   let insertDataMap = new Map();
   let availableInserts = new Map();
-  let isPanning = false;
 
   const BLACKLISTED_KEYWORDS = [
     "weather",
@@ -253,29 +252,46 @@ document.addEventListener("DOMContentLoaded", () => {
     return rawEntities;
   }
 
-  async function createInsertOverlayItem(protoName, tileX, tileY, customData, mapFolderName) {
-    const webpUrl = `inserts/${mapFolderName}/${protoName}.webp`;
-    const ymlUrl = `inserts/${mapFolderName}/${protoName}.yml`;
+  function registerInsertPlaceholder(protoName, tileX, tileY, customData, mapFolderName) {
+    return {
+      protoName: protoName,
+      enabled: false,
+      isLoaded: false,
+      webpUrl: `inserts/${mapFolderName}/${protoName}.webp`,
+      ymlUrl: `inserts/${mapFolderName}/${protoName}.yml`,
+      imgElem: null,
+      tileX: tileX,
+      tileY: tileY,
+      chance: customData.chance,
+      dir: customData.direction,
+      parentProto: customData.parentProto || null,
+      variations: customData.variations || [],
+      entities: []
+    };
+  }
 
-    const dims = await loadImageDimensions(webpUrl);
+  async function loadInsertAssets(insertObj) {
+    if (insertObj.isLoaded) return;
+
+    const dims = await loadImageDimensions(insertObj.webpUrl);
     const tilesTall = Math.round(dims.height / TILE_SIZE);
     const tilesWide = Math.round(dims.width / TILE_SIZE);
 
-    let targetTileX = tileX;
-    let targetTileY = tileY;
+    let targetTileX = insertObj.tileX;
+    let targetTileY = insertObj.tileY;
 
-    if (customData.direction) {
-      const dir = String(customData.direction).trim().toLowerCase();
+    if (insertObj.dir) {
+      const dir = String(insertObj.dir).trim().toLowerCase();
       if (dir === "north" || dir === "0") {
-        targetTileY = tileY - (tilesTall - 1);
+        targetTileY = insertObj.tileY - (tilesTall - 1);
       } else if (dir === "west" || dir === "270") {
-        targetTileX = tileX - (tilesWide - 1);
+        targetTileX = insertObj.tileX - (tilesWide - 1);
       }
     }
 
     const overlayImg = document.createElement("img");
-    overlayImg.src = webpUrl;
-    overlayImg.alt = protoName;
+    overlayImg.src = insertObj.webpUrl;
+    overlayImg.alt = insertObj.protoName;
     overlayImg.style.cssText = `
       position: absolute;
       pointer-events: none;
@@ -289,10 +305,11 @@ document.addEventListener("DOMContentLoaded", () => {
     overlayImg.style.top = `${targetTileY * TILE_SIZE}px`;
 
     mapContainer.appendChild(overlayImg);
+    insertObj.imgElem = overlayImg;
 
     let insertEntities = [];
     try {
-      const insertResponse = await fetch(ymlUrl);
+      const insertResponse = await fetch(insertObj.ymlUrl);
       if (insertResponse.ok) {
         const insertText = await insertResponse.text();
         const rawInsertEntities = parseYMLToEntities(insertText);
@@ -309,28 +326,18 @@ document.addEventListener("DOMContentLoaded", () => {
             proto: ie.proto,
             uid: ie.uid,
             isInsertContent: true,
-            insertProto: protoName,
+            insertProto: insertObj.protoName,
             tileX: targetTileX + Math.floor(ie.rawX - insertMinX),
             tileY: targetTileY + Math.floor(insertMaxY - ie.rawY)
           }));
         }
       }
     } catch (e) {
-      console.warn(`Could not load insert YML file at ${ymlUrl}`, e);
+      console.warn(`Could not load insert YML file at ${insertObj.ymlUrl}`, e);
     }
 
-    return {
-      enabled: false,
-      webpUrl: webpUrl,
-      imgElem: overlayImg,
-      tileX: targetTileX,
-      tileY: targetTileY,
-      chance: customData.chance,
-      dir: customData.direction,
-      parentProto: customData.parentProto || null,
-      variations: customData.variations || [],
-      entities: insertEntities
-    };
+    insertObj.entities = insertEntities;
+    insertObj.isLoaded = true;
   }
 
   async function parseEntitiesProtoGrouped(rawText, mapFolderName) {
@@ -362,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const normalizedProto = entity.proto.toLowerCase();
         const customData = insertDataMap.get(normalizedProto) || { direction: null, chance: null, variations: [] };
 
-        const parentData = await createInsertOverlayItem(entity.proto, entity.tileX, entity.tileY, customData, mapFolderName);
+        const parentData = registerInsertPlaceholder(entity.proto, entity.tileX, entity.tileY, customData, mapFolderName);
         availableInserts.set(entity.proto, parentData);
 
         if (customData.variations && customData.variations.length > 0) {
@@ -373,7 +380,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 chance: varItem.chance,
                 parentProto: entity.proto
               };
-              const varData = await createInsertOverlayItem(varItem.id, entity.tileX, entity.tileY, varCustomData, mapFolderName);
+              const varData = registerInsertPlaceholder(varItem.id, entity.tileX, entity.tileY, varCustomData, mapFolderName);
               availableInserts.set(varItem.id, varData);
             }
           }
@@ -462,12 +469,15 @@ document.addEventListener("DOMContentLoaded", () => {
             checkbox.type = "checkbox";
             checkbox.checked = childData.enabled;
 
-            checkbox.addEventListener("change", (e) => {
+            checkbox.addEventListener("change", async (e) => {
               const isChecked = e.target.checked;
               childData.enabled = isChecked;
 
-              if (childData.imgElem) {
-                childData.imgElem.style.display = isChecked ? "block" : "none";
+              if (isChecked) {
+                await loadInsertAssets(childData);
+                if (childData.imgElem) childData.imgElem.style.display = "block";
+              } else {
+                if (childData.imgElem) childData.imgElem.style.display = "none";
               }
 
               filterActiveEntities();
@@ -504,12 +514,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const cleanName = parentName.replace(/^RMCMapInsert/i, "");
         const chanceSuffix = parentData.chance ? ` (${parentData.chance})` : "";
 
-        checkbox.addEventListener("change", (e) => {
+        checkbox.addEventListener("change", async (e) => {
           const isChecked = e.target.checked;
           parentData.enabled = isChecked;
 
-          if (parentData.imgElem) {
-            parentData.imgElem.style.display = isChecked ? "block" : "none";
+          if (isChecked) {
+            await loadInsertAssets(parentData);
+            if (parentData.imgElem) parentData.imgElem.style.display = "block";
+          } else {
+            if (parentData.imgElem) parentData.imgElem.style.display = "none";
           }
 
           filterActiveEntities();
