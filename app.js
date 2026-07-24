@@ -9,7 +9,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuTitle = document.getElementById("menu-tile-title");
 
   const TILE_SIZE = 32;
-  let parsedEntities = [];
+
+  let allParsedEntities = [];
+  let visibleEntities = [];
+  let insertDataMap = new Map();
+  let availableInserts = new Map();
+  let isPanning = false;
 
   const BLACKLISTED_KEYWORDS = [
     "weather",
@@ -20,11 +25,48 @@ document.addEventListener("DOMContentLoaded", () => {
     "fog"
   ];
 
-  const panzoom = Panzoom(elem, {
+  function hideHoverTile() {
+    tileHover.style.display = "none";
+  }
+
+  const mapContainer = document.createElement("div");
+  mapContainer.id = "map-container";
+  mapContainer.style.cssText = `
+    position: relative;
+    display: inline-block;
+  `;
+  
+  elem.parentNode.insertBefore(mapContainer, elem);
+  mapContainer.appendChild(elem);
+  elem.style.display = "block";
+
+  const insertContainer = document.createElement("div");
+  insertContainer.id = "insert-menu-container";
+  insertContainer.className = "insert-controls";
+  viewport.appendChild(insertContainer);
+
+  const panzoom = Panzoom(mapContainer, {
     maxScale: 50,
     minScale: 0.05,
     canvas: true
   });
+
+  mapContainer.addEventListener("panzoomstart", () => {
+    isPanning = true;
+    hideHoverTile();
+  });
+
+  mapContainer.addEventListener("panzoomchange", () => {
+    if (isPanning) hideHoverTile();
+  });
+
+  mapContainer.addEventListener("panzoomend", () => {
+    isPanning = false;
+  });
+
+  window.addEventListener("pointerdown", (e) => {
+    if (e.button === 0) hideHoverTile();
+  }, true);
 
   viewport.addEventListener("wheel", (event) => {
     event.preventDefault();
@@ -36,10 +78,111 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
   document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
 
-  function parseEntitiesProtoGrouped(rawText) {
+  function getMapFolderName(mapUrl) {
+    if (!mapUrl) return "default";
+    const filename = mapUrl.split('/').pop().split('\\').pop();
+    return filename.substring(0, filename.lastIndexOf('.')) || filename;
+  }
+
+  function formatChance(rawChance) {
+    if (rawChance === undefined || rawChance === null) return null;
+    const num = parseFloat(rawChance);
+    if (isNaN(num)) return String(rawChance);
+    if (num <= 1 && num > 0) return `${Math.round(num * 100)}%`;
+    return `${num}%`;
+  }
+
+  async function loadInsertMetadata(mapFolderName) {
+    insertDataMap.clear();
+    const yamlUrl = `inserts/${mapFolderName}/inserts.yml`;
+
+    try {
+      const response = await fetch(yamlUrl);
+      if (!response.ok) return;
+
+      const rawText = await response.text();
+      const parsedYaml = jsyaml.load(rawText);
+      if (!parsedYaml) return;
+
+      const items = Array.isArray(parsedYaml) ? parsedYaml : (parsedYaml.inserts || [parsedYaml]);
+
+      items.forEach(item => {
+        if (!item) return;
+        const insertId = item.id || item.type || item.proto;
+        if (!insertId) return;
+
+        const parentDirection = item.direction || item.dir || item.orientation || null;
+        const parentChance = formatChance(item.chance ?? item.probability ?? item.spawnChance ?? item.weight);
+
+        const rawVariations = item.variations;
+        const variationList = [];
+
+        if (Array.isArray(rawVariations)) {
+          let currentVarObj = null;
+
+          rawVariations.forEach(v => {
+            if (typeof v === 'object' && v !== null) {
+              if (v.id || v.proto) {
+                if (currentVarObj) variationList.push(currentVarObj);
+                currentVarObj = {
+                  id: v.id || v.proto,
+                  chance: formatChance(v.chance ?? v.probability ?? v.weight),
+                  direction: v.direction || parentDirection
+                };
+              } else if (v.chance !== undefined && currentVarObj) {
+                currentVarObj.chance = formatChance(v.chance);
+              }
+            }
+          });
+          if (currentVarObj) variationList.push(currentVarObj);
+        }
+
+        const normalizedParentKey = String(insertId).trim().toLowerCase();
+
+        insertDataMap.set(normalizedParentKey, {
+          id: insertId,
+          direction: parentDirection,
+          chance: parentChance,
+          variations: variationList
+        });
+
+        variationList.forEach(v => {
+          const varKey = String(v.id).trim().toLowerCase();
+          insertDataMap.set(varKey, {
+            id: v.id,
+            direction: v.direction || parentDirection,
+            chance: v.chance,
+            parentProto: insertId,
+            isVariation: true
+          });
+        });
+      });
+    } catch (err) {
+      console.warn(`[Inserts] Failed reading YAML from ${yamlUrl}:`, err);
+    }
+  }
+
+  function clearOverlayImages() {
+    availableInserts.forEach(insertData => {
+      if (insertData.imgElem && insertData.imgElem.parentNode) {
+        insertData.imgElem.parentNode.removeChild(insertData.imgElem);
+      }
+    });
+    availableInserts.clear();
+  }
+
+  function loadImageDimensions(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: TILE_SIZE, height: TILE_SIZE });
+      img.src = src;
+    });
+  }
+
+  function parseYMLToEntities(rawText) {
     const rawEntities = [];
     const uidMap = new Map();
-
     const protoBlocks = rawText.split(/(?=\n\s*-\s*proto:|\n\s*proto:)/g);
 
     protoBlocks.forEach(protoBlock => {
@@ -47,7 +190,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!protoMatch) return;
 
       const currentProto = protoMatch[1];
-
       const entitySubBlocks = protoBlock.split(/(?=\n\s*-\s*uid:)/g);
 
       entitySubBlocks.forEach(entityBlock => {
@@ -55,7 +197,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!uidMatch) return;
 
         const uid = uidMatch[1];
-
         const parentMatch = entityBlock.match(/parent:\s*([0-9]+)/i);
         const parentUid = parentMatch ? parentMatch[1] : null;
 
@@ -64,10 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                          entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
 
         if (posMatch) {
-          localPos = {
-            x: parseFloat(posMatch[1]),
-            y: parseFloat(posMatch[2])
-          };
+          localPos = { x: parseFloat(posMatch[1]), y: parseFloat(posMatch[2]) };
         }
 
         if (uid && localPos) {
@@ -98,9 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
           worldX += parentNode.localPos.x;
           worldY += parentNode.localPos.y;
           currentParent = parentNode.parentUid;
-        } else {
-          break;
-        }
+        } else break;
         depth++;
       }
 
@@ -114,6 +250,93 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    return rawEntities;
+  }
+
+  async function createInsertOverlayItem(protoName, tileX, tileY, customData, mapFolderName) {
+    const webpUrl = `inserts/${mapFolderName}/${protoName}.webp`;
+    const ymlUrl = `inserts/${mapFolderName}/${protoName}.yml`;
+
+    const dims = await loadImageDimensions(webpUrl);
+    const tilesTall = Math.round(dims.height / TILE_SIZE);
+    const tilesWide = Math.round(dims.width / TILE_SIZE);
+
+    let targetTileX = tileX;
+    let targetTileY = tileY;
+
+    if (customData.direction) {
+      const dir = String(customData.direction).trim().toLowerCase();
+      if (dir === "north" || dir === "0") {
+        targetTileY = tileY - (tilesTall - 1);
+      } else if (dir === "west" || dir === "270") {
+        targetTileX = tileX - (tilesWide - 1);
+      }
+    }
+
+    const overlayImg = document.createElement("img");
+    overlayImg.src = webpUrl;
+    overlayImg.alt = protoName;
+    overlayImg.style.cssText = `
+      position: absolute;
+      pointer-events: none;
+      z-index: 2;
+      display: none;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    `;
+
+    overlayImg.style.left = `${targetTileX * TILE_SIZE}px`;
+    overlayImg.style.top = `${targetTileY * TILE_SIZE}px`;
+
+    mapContainer.appendChild(overlayImg);
+
+    let insertEntities = [];
+    try {
+      const insertResponse = await fetch(ymlUrl);
+      if (insertResponse.ok) {
+        const insertText = await insertResponse.text();
+        const rawInsertEntities = parseYMLToEntities(insertText);
+
+        if (rawInsertEntities.length > 0) {
+          let insertMinX = Infinity;
+          let insertMaxY = -Infinity;
+          rawInsertEntities.forEach(ie => {
+            if (ie.rawX < insertMinX) insertMinX = ie.rawX;
+            if (ie.rawY > insertMaxY) insertMaxY = ie.rawY;
+          });
+
+          insertEntities = rawInsertEntities.map(ie => ({
+            proto: ie.proto,
+            uid: ie.uid,
+            isInsertContent: true,
+            insertProto: protoName,
+            tileX: targetTileX + Math.floor(ie.rawX - insertMinX),
+            tileY: targetTileY + Math.floor(insertMaxY - ie.rawY)
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn(`Could not load insert YML file at ${ymlUrl}`, e);
+    }
+
+    return {
+      enabled: false,
+      webpUrl: webpUrl,
+      imgElem: overlayImg,
+      tileX: targetTileX,
+      tileY: targetTileY,
+      chance: customData.chance,
+      dir: customData.direction,
+      parentProto: customData.parentProto || null,
+      variations: customData.variations || [],
+      entities: insertEntities
+    };
+  }
+
+  async function parseEntitiesProtoGrouped(rawText, mapFolderName) {
+    clearOverlayImages();
+
+    const rawEntities = parseYMLToEntities(rawText);
     if (rawEntities.length === 0) return [];
 
     let minX = Infinity;
@@ -124,16 +347,192 @@ document.addEventListener("DOMContentLoaded", () => {
       if (item.rawY > maxY) maxY = item.rawY;
     });
 
-    return rawEntities.map(item => ({
+    const parsed = rawEntities.map(item => ({
       proto: item.proto,
       uid: item.uid,
+      isInsert: item.proto.toLowerCase().includes("insert") || insertDataMap.has(item.proto.toLowerCase()),
+      rawX: item.rawX,
+      rawY: item.rawY,
       tileX: Math.floor(item.rawX - minX),
       tileY: Math.floor(maxY - item.rawY)
     }));
+
+    for (const entity of parsed) {
+      if (entity.isInsert && !availableInserts.has(entity.proto)) {
+        const normalizedProto = entity.proto.toLowerCase();
+        const customData = insertDataMap.get(normalizedProto) || { direction: null, chance: null, variations: [] };
+
+        const parentData = await createInsertOverlayItem(entity.proto, entity.tileX, entity.tileY, customData, mapFolderName);
+        availableInserts.set(entity.proto, parentData);
+
+        if (customData.variations && customData.variations.length > 0) {
+          for (const varItem of customData.variations) {
+            if (!availableInserts.has(varItem.id)) {
+              const varCustomData = {
+                direction: varItem.direction || customData.direction,
+                chance: varItem.chance,
+                parentProto: entity.proto
+              };
+              const varData = await createInsertOverlayItem(varItem.id, entity.tileX, entity.tileY, varCustomData, mapFolderName);
+              availableInserts.set(varItem.id, varData);
+            }
+          }
+        }
+      }
+    }
+
+    return parsed;
+  }
+
+  function filterActiveEntities() {
+    visibleEntities = allParsedEntities.filter(entity => {
+      if (!entity.isInsert) return true;
+      const insertData = availableInserts.get(entity.proto);
+      return insertData ? insertData.enabled : false;
+    });
+  }
+
+  function renderInsertControls() {
+    insertContainer.innerHTML = "";
+
+    if (availableInserts.size === 0) {
+      insertContainer.style.display = "none";
+      return;
+    }
+
+    insertContainer.style.display = "block";
+
+    const title = document.createElement("div");
+    title.className = "insert-title";
+    title.textContent = `Map Inserts`;
+    insertContainer.appendChild(title);
+
+    const topLevelInserts = [];
+    const variationMap = new Map();
+
+    availableInserts.forEach((data, protoName) => {
+      if (data.parentProto) {
+        if (!variationMap.has(data.parentProto)) {
+          variationMap.set(data.parentProto, []);
+        }
+        variationMap.get(data.parentProto).push({ name: protoName, data });
+      } else {
+        topLevelInserts.push({ name: protoName, data });
+      }
+    });
+
+    topLevelInserts.forEach(({ name: parentName, data: parentData }) => {
+      const childVars = variationMap.get(parentName) || [];
+
+      if (childVars.length > 0) {
+        const details = document.createElement("details");
+        details.className = "insert-dropdown";
+
+        const summary = document.createElement("summary");
+        
+        const arrow = document.createElement("span");
+        arrow.className = "dropdown-arrow";
+        arrow.textContent = "▶";
+
+        const cleanParentName = parentName.replace(/^RMCMapInsert/i, "");
+        const chanceSuffix = parentData.chance ? ` (${parentData.chance})` : "";
+
+        const parentLabelText = document.createElement("span");
+        parentLabelText.textContent = `${cleanParentName}${chanceSuffix}`;
+        parentLabelText.style.fontSize = "0.85rem";
+
+        summary.appendChild(arrow);
+        summary.appendChild(parentLabelText);
+        details.appendChild(summary);
+
+        const subMenuContainer = document.createElement("div");
+        subMenuContainer.className = "insert-submenu";
+
+        childVars.forEach(({ name: childName, data: childData }) => {
+          const row = document.createElement("div");
+          row.className = "insert-row child-row";
+
+          const label = document.createElement("label");
+          label.className = "insert-label";
+
+          const isNoDisplay = childName.toLowerCase().includes("nodisplay");
+
+          if (!isNoDisplay) {
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = childData.enabled;
+
+            checkbox.addEventListener("change", (e) => {
+              const isChecked = e.target.checked;
+              childData.enabled = isChecked;
+
+              if (childData.imgElem) {
+                childData.imgElem.style.display = isChecked ? "block" : "none";
+              }
+
+              filterActiveEntities();
+            });
+
+            label.appendChild(checkbox);
+          }
+
+          const cleanChildName = childName.replace(/^RMCMapInsert/i, "");
+          const varChanceSuffix = childData.chance ? ` (${childData.chance})` : "";
+
+          const textSpan = document.createElement("span");
+          textSpan.textContent = `${cleanChildName}${varChanceSuffix}`;
+          textSpan.style.fontSize = "0.8rem";
+
+          label.appendChild(textSpan);
+          row.appendChild(label);
+          subMenuContainer.appendChild(row);
+        });
+
+        details.appendChild(subMenuContainer);
+        insertContainer.appendChild(details);
+      } else {
+        const row = document.createElement("div");
+        row.className = "insert-row";
+
+        const label = document.createElement("label");
+        label.className = "insert-label";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = parentData.enabled;
+
+        const cleanName = parentName.replace(/^RMCMapInsert/i, "");
+        const chanceSuffix = parentData.chance ? ` (${parentData.chance})` : "";
+
+        checkbox.addEventListener("change", (e) => {
+          const isChecked = e.target.checked;
+          parentData.enabled = isChecked;
+
+          if (parentData.imgElem) {
+            parentData.imgElem.style.display = isChecked ? "block" : "none";
+          }
+
+          filterActiveEntities();
+        });
+
+        label.appendChild(checkbox);
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = `${cleanName}${chanceSuffix}`;
+        textSpan.style.fontSize = "0.85rem";
+
+        label.appendChild(textSpan);
+        row.appendChild(label);
+        insertContainer.appendChild(row);
+      }
+    });
   }
 
   async function loadMapData(mapUrl) {
-    parsedEntities = [];
+    allParsedEntities = [];
+    visibleEntities = [];
+    insertContainer.style.display = "none";
+
     if (!mapUrl) return;
 
     try {
@@ -141,9 +540,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) return;
 
       const rawText = await response.text();
-      parsedEntities = parseEntitiesProtoGrouped(rawText);
+      const mapFolderName = getMapFolderName(mapUrl);
+      
+      await loadInsertMetadata(mapFolderName);
+      allParsedEntities = await parseEntitiesProtoGrouped(rawText, mapFolderName);
 
-      console.log(`Successfully loaded ${parsedEntities.length} entities from ${mapUrl}`);
+      renderInsertControls();
+      filterActiveEntities();
     } catch (err) {
       console.warn("Map file failed to load or parse:", err);
     }
@@ -155,8 +558,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTileY = null;
 
   function updateTileHover(event) {
-    if (!elem.naturalWidth || !elem.naturalHeight || !elem.complete) {
-      tileHover.style.display = "none";
+    if (isPanning || (event.buttons & 1) === 1 || !elem.naturalWidth || !elem.naturalHeight || !elem.complete) {
+      hideHoverTile();
       coordsDisplay.textContent = "X: --, Y: --";
       return;
     }
@@ -170,7 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
       event.clientY < viewportRect.top ||
       event.clientY > viewportRect.bottom
     ) {
-      tileHover.style.display = "none";
+      hideHoverTile();
       coordsDisplay.textContent = "X: --, Y: --";
       currentTileX = null;
       currentTileY = null;
@@ -202,14 +605,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       coordsDisplay.textContent = `X: ${currentTileX}, Y: ${currentTileY}`;
     } else {
-      tileHover.style.display = "none";
+      hideHoverTile();
       coordsDisplay.textContent = "X: --, Y: --";
       currentTileX = null;
       currentTileY = null;
     }
   }
 
-  window.addEventListener("mousemove", updateTileHover);
+  window.addEventListener("mousemove", updateTileHover, true);
 
   viewport.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -219,24 +622,43 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const matches = parsedEntities.filter(
-      e => e.tileX === currentTileX && e.tileY === currentTileY
-    );
+    let activeInsertEntitiesOnTile = [];
+    availableInserts.forEach(insertData => {
+      if (insertData.enabled && insertData.entities) {
+        const matches = insertData.entities.filter(
+          e => e.tileX === currentTileX && e.tileY === currentTileY
+        );
+        activeInsertEntitiesOnTile.push(...matches);
+      }
+    });
 
     menuTitle.textContent = `Tile (${currentTileX}, ${currentTileY})`;
     entityList.innerHTML = "";
 
-    if (matches.length > 0) {
-      matches.forEach(item => {
+    if (activeInsertEntitiesOnTile.length > 0) {
+      activeInsertEntitiesOnTile.forEach(item => {
         const li = document.createElement("li");
         li.textContent = `${item.proto} [${item.uid}]`;
+        li.style.color = "#4db8ff";
         entityList.appendChild(li);
       });
     } else {
-      const li = document.createElement("li");
-      li.textContent = "No entity prototypes";
-      li.className = "no-entities";
-      entityList.appendChild(li);
+      const baseMatches = visibleEntities.filter(
+        e => e.tileX === currentTileX && e.tileY === currentTileY && !e.isInsert
+      );
+
+      if (baseMatches.length > 0) {
+        baseMatches.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = `${item.proto} [${item.uid}]`;
+          entityList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement("li");
+        li.textContent = "No entity prototypes";
+        li.className = "no-entities";
+        entityList.appendChild(li);
+      }
     }
 
     const viewportRect = viewport.getBoundingClientRect();
@@ -254,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
       listItems.forEach((li) => li.classList.remove("active"));
       item.classList.add("active");
 
-      tileHover.style.display = "none";
+      hideHoverTile();
       contextMenu.style.display = "none";
       coordsDisplay.textContent = "X: --, Y: --";
 
@@ -266,7 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       elem.onload = () => {
         panzoom.reset();
-        tileHover.style.display = "none";
+        hideHoverTile();
       };
     });
   });
