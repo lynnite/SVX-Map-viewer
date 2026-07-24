@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let visibleEntities = [];
   let insertDataMap = new Map();
   let availableInserts = new Map();
+  let isPanning = false;
 
   const BLACKLISTED_KEYWORDS = [
     "weather",
@@ -207,12 +208,28 @@ document.addEventListener("DOMContentLoaded", () => {
           localPos = { x: parseFloat(posMatch[1]), y: parseFloat(posMatch[2]) };
         }
 
-        if (uid && localPos) {
+        const containedUIDs = [];
+
+        const entsBlockMatch = entityBlock.match(/ents:\s*([\s\S]*?)(?=\n\s*[\w_]+:|$)/i);
+        if (entsBlockMatch) {
+          const itemUidMatches = entsBlockMatch[1].matchAll(/-\s*([0-9]+)/g);
+          for (const match of itemUidMatches) {
+            containedUIDs.push(match[1]);
+          }
+        }
+
+        const singleEntMatch = entityBlock.match(/ent:\s*([0-9]+)/i);
+        if (singleEntMatch) {
+          containedUIDs.push(singleEntMatch[1]);
+        }
+
+        if (uid) {
           uidMap.set(String(uid), {
             uid: String(uid),
             proto: currentProto,
             parentUid: parentUid ? String(parentUid) : null,
-            localPos: localPos
+            localPos: localPos,
+            containedUIDs: containedUIDs
           });
         }
       });
@@ -224,29 +241,43 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       if (isBlacklisted) return;
 
-      let worldX = node.localPos.x;
-      let worldY = node.localPos.y;
+      let worldX = node.localPos ? node.localPos.x : null;
+      let worldY = node.localPos ? node.localPos.y : null;
       let currentParent = node.parentUid;
       let depth = 0;
 
       while (currentParent && uidMap.has(currentParent) && depth < 10) {
         const parentNode = uidMap.get(currentParent);
-        if (parentNode && parentNode.localPos) {
-          worldX += parentNode.localPos.x;
-          worldY += parentNode.localPos.y;
+        if (parentNode) {
+          if (parentNode.localPos) {
+            worldX = (worldX || 0) + parentNode.localPos.x;
+            worldY = (worldY || 0) + parentNode.localPos.y;
+          }
           currentParent = parentNode.parentUid;
         } else break;
         depth++;
       }
 
-      if (!isNaN(worldX) && !isNaN(worldY)) {
-        rawEntities.push({
-          proto: node.proto,
-          uid: node.uid,
-          rawX: worldX,
-          rawY: worldY
+      const crateContents = [];
+      if (node.containedUIDs && node.containedUIDs.length > 0) {
+        node.containedUIDs.forEach(childUid => {
+          const childNode = uidMap.get(childUid);
+          if (childNode) {
+            crateContents.push({
+              proto: childNode.proto,
+              uid: childNode.uid
+            });
+          }
         });
       }
+
+      rawEntities.push({
+        proto: node.proto,
+        uid: node.uid,
+        rawX: worldX,
+        rawY: worldY,
+        contents: crateContents
+      });
     });
 
     return rawEntities;
@@ -318,17 +349,18 @@ document.addEventListener("DOMContentLoaded", () => {
           let insertMinX = Infinity;
           let insertMaxY = -Infinity;
           rawInsertEntities.forEach(ie => {
-            if (ie.rawX < insertMinX) insertMinX = ie.rawX;
-            if (ie.rawY > insertMaxY) insertMaxY = ie.rawY;
+            if (ie.rawX !== null && ie.rawX < insertMinX) insertMinX = ie.rawX;
+            if (ie.rawY !== null && ie.rawY > insertMaxY) insertMaxY = ie.rawY;
           });
 
           insertEntities = rawInsertEntities.map(ie => ({
             proto: ie.proto,
             uid: ie.uid,
+            contents: ie.contents,
             isInsertContent: true,
             insertProto: insertObj.protoName,
-            tileX: targetTileX + Math.floor(ie.rawX - insertMinX),
-            tileY: targetTileY + Math.floor(insertMaxY - ie.rawY)
+            tileX: ie.rawX !== null ? targetTileX + Math.floor(ie.rawX - insertMinX) : null,
+            tileY: ie.rawY !== null ? targetTileY + Math.floor(insertMaxY - ie.rawY) : null
           }));
         }
       }
@@ -350,22 +382,23 @@ document.addEventListener("DOMContentLoaded", () => {
     let maxY = -Infinity;
 
     rawEntities.forEach(item => {
-      if (item.rawX < minX) minX = item.rawX;
-      if (item.rawY > maxY) maxY = item.rawY;
+      if (item.rawX !== null && item.rawX < minX) minX = item.rawX;
+      if (item.rawY !== null && item.rawY > maxY) maxY = item.rawY;
     });
 
     const parsed = rawEntities.map(item => ({
       proto: item.proto,
       uid: item.uid,
+      contents: item.contents,
       isInsert: item.proto.toLowerCase().includes("insert") || insertDataMap.has(item.proto.toLowerCase()),
       rawX: item.rawX,
       rawY: item.rawY,
-      tileX: Math.floor(item.rawX - minX),
-      tileY: Math.floor(maxY - item.rawY)
+      tileX: item.rawX !== null ? Math.floor(item.rawX - minX) : null,
+      tileY: item.rawY !== null ? Math.floor(maxY - item.rawY) : null
     }));
 
     for (const entity of parsed) {
-      if (entity.isInsert && !availableInserts.has(entity.proto)) {
+      if (entity.isInsert && entity.tileX !== null && !availableInserts.has(entity.proto)) {
         const normalizedProto = entity.proto.toLowerCase();
         const customData = insertDataMap.get(normalizedProto) || { direction: null, chance: null, variations: [] };
 
@@ -627,6 +660,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("mousemove", updateTileHover, true);
 
+  function renderEntityMenuItem(item, isInsert) {
+    const li = document.createElement("li");
+    li.textContent = `${item.proto} [${item.uid}]`;
+    if (isInsert) li.style.color = "#4db8ff";
+    entityList.appendChild(li);
+
+    if (item.contents && item.contents.length > 0) {
+      item.contents.forEach(child => {
+        const childLi = document.createElement("li");
+        childLi.textContent = `↳ In: ${child.proto} [${child.uid}]`;
+        childLi.style.paddingLeft = "16px";
+        childLi.style.opacity = "0.85";
+        childLi.style.fontSize = "0.85em";
+        if (isInsert) childLi.style.color = "#80d4ff";
+        entityList.appendChild(childLi);
+      });
+    }
+  }
+
   viewport.addEventListener("contextmenu", (event) => {
     event.preventDefault();
 
@@ -649,23 +701,14 @@ document.addEventListener("DOMContentLoaded", () => {
     entityList.innerHTML = "";
 
     if (activeInsertEntitiesOnTile.length > 0) {
-      activeInsertEntitiesOnTile.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = `${item.proto} [${item.uid}]`;
-        li.style.color = "#4db8ff";
-        entityList.appendChild(li);
-      });
+      activeInsertEntitiesOnTile.forEach(item => renderEntityMenuItem(item, true));
     } else {
       const baseMatches = visibleEntities.filter(
         e => e.tileX === currentTileX && e.tileY === currentTileY && !e.isInsert
       );
 
       if (baseMatches.length > 0) {
-        baseMatches.forEach(item => {
-          const li = document.createElement("li");
-          li.textContent = `${item.proto} [${item.uid}]`;
-          entityList.appendChild(li);
-        });
+        baseMatches.forEach(item => renderEntityMenuItem(item, false));
       } else {
         const li = document.createElement("li");
         li.textContent = "No entity prototypes";
