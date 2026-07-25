@@ -1,0 +1,94 @@
+- id: RMCMapInsertLV624Armory
+  direction: north
+  variations:
+    - id: ArmoryLooted
+      chance: 0.10
+    - id: ArmoryExtra
+      chance: 0.10
+    - id: ArmoryCheese
+      chance: 0.10
+
+- id: RMCMapInsertLV624Gym
+  direction: north
+  variations:
+    - id: GymAlternate
+      chance: 0.30
+      offset: [1, -14]
+    - id: GymPool
+      chance: 0.20
+      offset: [1, -14]
+
+- id: RMCMapInsertLV624NexusCenter
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertLV624SandtempleSE
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertLV624SandtempleJungle
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertLV624CargoSpecial1
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624CargoSpecial2
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624CargoSpecial3
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624Hydro
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertLV624Bridge
+  direction: north
+  variations:
+    - id: BridgeEast
+      chance: 0.1
+    - id: BridgeRestored
+      chance: 0.1
+      offset: [25, -13]
+
+- id: RMCMapInsertLV624CentralCaves
+  direction: north
+  variations:
+    - id: CentralcavesT
+      chance: 0.1
+    - id: CentralcavesQc
+      chance: 0.1
+
+- id: RMCMapInsertLV624Medbay
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624SandTempleIntactFlooded
+  direction: south
+  variations:
+    - id: MaintempleIntact
+      chance: 0.1
+      offset: [0, -26]
+    - id: MaintempleFlooded
+      chance: 0.2
+      offset: [0, -26]
+
+- id: RMCMapInsertLV624CorporateDome
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624CLFShip
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertLV624SurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnPowerplant
+      chance: 0.5
+    - id: SurvSpawnNexusNodisplay
+      chance: 0.5

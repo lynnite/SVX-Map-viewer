@@ -1,0 +1,37 @@
+- id: RMCMapInsertKutjevoCommunications
+  chance: 0.35
+  direction: north
+
+- id: RMCMapInsertKutjevoCleaningProgBotany
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertKutjevoTrappedMonke
+  chance: 0.05
+  direction: north
+
+- id: RMCMapInsertSolarisPlinkingSpotNorthLZ
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertKutjevoLZ1Alternative
+  chance: 0.6
+  direction: north
+
+- id: RMCMapInsertKutjevoCLFSmugglers
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertKutjevoSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnBar
+      chance: 0.2
+    - id: SurvSpawnMedicalNodisplay
+      chance: 0.2
+    - id: SurvSpawnNorthBotanyNodisplay
+      chance: 0.2
+    - id: SurvSpawnSouthBotanyNodisplay
+      chance: 0.2
+    - id: SurvSpawnPowerplantNodisplay
+      chance: 0.2

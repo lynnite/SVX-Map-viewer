@@ -1,0 +1,25 @@
+- id: RMCMapInsertSorokyneSPPSOF
+  chance: 0.4
+  direction: north
+
+- id: RMCMapInsertSorokyneSPPSOFAlt
+  chance: 0.4
+  direction: north
+
+- id: RMCMapInsertSorokyneMedbay
+  chance: 0.5
+  direction: north
+
+- id: RMCMapInsertSorokyneFlamerBodypile
+  chance: 0.6
+  direction: north
+
+- id: RMCMapInsertSorokyneSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnSecurity
+      chance: 0.34
+    - id: SurvSpawnAerodromNodisplay
+      chance: 0.33
+    - id: SurvSpawnSouthEngiNodisplay
+      chance: 0.33

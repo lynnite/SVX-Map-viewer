@@ -1,0 +1,33 @@
+- id: RMCMapInsertFiorinaPodholder
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertFiorinaBirthdayParty
+  chance: 0.15
+  direction: north
+
+- id: RMCMapInsertFiorinaNoGear
+  chance: 0.15
+  direction: north
+
+- id: RMCMapInsertFiorinaRocinanteCLF
+  chance: 1
+  direction: north
+
+- id: RMCMapInsertFiorinaRiotInProgress
+  chance: 1
+  direction: north
+
+- id: RMCMapInsertFiorinaSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnLowsec
+      chance: 0.2
+    - id: SurvSpawnResearchNodisplay
+      chance: 0.2
+    - id: SurvSpawnGardenNodisplay
+      chance: 0.2
+    - id: SurvSpawnEngiRingNodisplay
+      chance: 0.2
+    - id: SurvSpawnBobdaNodisplay
+      chance: 0.2

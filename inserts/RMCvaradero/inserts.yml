@@ -1,0 +1,27 @@
+- id: RMCMapInsertVaraderoCLFRaid
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertVaraderoResturant
+  chance: 0.33
+  direction: north
+
+- id: RMCMapInsertVaraderoAltHospital
+  chance: 0.5
+  direction: north
+
+- id: RMCMapInsertVaraderoEngiHold
+  chance: 0.33
+  direction: north
+
+- id: RMCMapInsertVaraderoSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnDorms
+      chance: 0.25
+    - id: SurvSpawnAdminNodisplay
+      chance: 0.25
+    - id: SurvSpawnEngineeringNodisplay
+      chance: 0.25
+    - id: SurvSpawnChapelNodisplay
+      chance: 0.25

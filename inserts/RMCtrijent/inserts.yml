@@ -1,0 +1,104 @@
+- id: RMCMapInsertTrijentCLFPods
+  chance: 0.1
+  direction: south
+
+- id: RMCMapInsertTrijentSouthbridge
+  direction: north
+  variations:
+    - id: SouthbridgeCorpohold
+      chance: 0.1
+    - id: SouthbridgeCivhold
+      chance: 0.1
+
+- id: RMCMapInsertTrijentCMBEngi
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertTrijentLoaderdude
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertTrijentCaveInEngineering
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertTrijentArmory
+  direction: north
+  variations:
+    - id: PristineArmory
+      chance: 0.1
+    - id: BattleArmory
+      chance: 0.2
+
+- id: RMCMapInsertTrijentWorkshop
+  chance: 0.1
+  direction: north
+  variations:
+    - id: WorkshopGear
+      chance: 0.1
+    - id: WorkshopGuns
+      chance: 0.1
+
+- id: RMCMapInsertTrijentTempleIntact
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertTrijentShipGone
+  chance: 0.15
+  direction: north
+
+- id: RMCMapInsertTrijentMiniEvacWestResearch
+  chance: 0.2
+  direction: north
+
+- id: RMCMapInsertTrijentGreenBridge
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertTrijentPurpleBridge
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertTrijentAdminFight
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertTrijentHoldGenwest
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertTrijentHydroBreakroomHold
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertTrijentMetalGeneast
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertTrijentSensorhold
+  chance: 0.5
+  direction: north
+
+- id: RMCMapInsertTrijentEngiCentralRepaired
+  chance: 0.7
+  direction: north
+
+- id: RMCMapInsertTrijentCrashlandingSPPBar
+  chance: 0.4
+  direction: south
+
+- id: RMCMapInsertTrijentCrashlandingSPPAlt
+  chance: 0.4
+  direction: south
+
+- id: RMCMapInsertTrijentSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnBar
+      chance: 0.25
+    - id: SurvSpawnDamNodisplay
+      chance: 0.25
+    - id: SurvSpawnHospitalNodisplay
+      chance: 0.25
+    - id: SurvSpawnTunneldormNodisplay
+      chance: 0.25
