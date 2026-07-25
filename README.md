@@ -9,4 +9,6 @@ Toggle inserts visibility from the menu by ticking boxes.
 Some inserts have variations which have a drop down menu for each variation.
 Every insert has a probability percentage for spawning in-game.
 
+Tool for automatically formatting inserts.yml [here](https://github.com/lynnite/SvX-Mapview-Insert-tool).
+
 All code licensed under MIT
