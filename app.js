@@ -1,12 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
   const elem = document.getElementById("map-image");
   const viewport = document.querySelector(".viewport");
-  const listItems = document.querySelectorAll("#image-list li");
+  const initialListItems = document.querySelectorAll("#image-list li");
   const tileHover = document.getElementById("tile-hover");
   const coordsDisplay = document.getElementById("tile-coords");
   const contextMenu = document.getElementById("context-menu");
   const entityList = document.getElementById("entity-list");
   const menuTitle = document.getElementById("menu-tile-title");
+  const sidebarFooter = document.querySelector(".sidebar-footer");
 
   const TILE_SIZE = 32;
 
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tileHover.style.display = "none";
   }
 
+  // --- MAP CONTAINER SETUP ---
   const mapContainer = document.createElement("div");
   mapContainer.id = "map-container";
   mapContainer.style.cssText = `
@@ -40,11 +42,158 @@ document.addEventListener("DOMContentLoaded", () => {
   mapContainer.appendChild(elem);
   elem.style.display = "block";
 
+  // --- COORD LABEL CLEANUP ---
+  if (coordsDisplay) {
+    const coordLabel = coordsDisplay.previousElementSibling;
+    if (coordLabel && coordLabel.classList.contains("coord-label")) {
+      coordLabel.remove();
+    }
+  }
+
+  // --- SIDEBAR DROPDOWN CATEGORIES SETUP ---
+  const imageListContainer = document.getElementById("image-list");
+
+  function setupMapCategories() {
+    if (!imageListContainer) return;
+
+    const svxDetails = document.createElement("details");
+    svxDetails.className = "sidebar-category";
+    const svxSummary = document.createElement("summary");
+    svxSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
+    svxDetails.appendChild(svxSummary);
+    const svxUl = document.createElement("ul");
+    svxDetails.appendChild(svxUl);
+
+    const rmcDetails = document.createElement("details");
+    rmcDetails.className = "sidebar-category";
+    const rmcSummary = document.createElement("summary");
+    rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC14 maps</span>`;
+    rmcDetails.appendChild(rmcSummary);
+    const rmcUl = document.createElement("ul");
+    rmcDetails.appendChild(rmcUl);
+
+    const uncategorizedItems = [];
+
+    initialListItems.forEach(li => {
+      const category = (li.getAttribute("data-category") || "").toLowerCase();
+      if (category === "svx") {
+        svxUl.appendChild(li);
+      } else if (category === "rmc14" || category === "rmc") {
+        rmcUl.appendChild(li);
+      } else {
+        uncategorizedItems.push(li);
+      }
+    });
+
+    imageListContainer.innerHTML = "";
+    if (svxUl.children.length > 0) imageListContainer.appendChild(svxDetails);
+    if (rmcUl.children.length > 0) imageListContainer.appendChild(rmcDetails);
+    uncategorizedItems.forEach(li => imageListContainer.appendChild(li));
+  }
+
+  setupMapCategories();
+
+  // --- SIDEBAR SEARCH & RECOMMENDATIONS INTEGRATION ---
+  const sidebarControlsGroup = document.createElement("div");
+  sidebarControlsGroup.id = "sidebar-controls-group";
+  sidebarControlsGroup.style.cssText = `
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.75rem;
+  `;
+
+  const searchWrapper = document.createElement("div");
+  searchWrapper.style.cssText = `
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+  `;
+
+  const searchBox = document.createElement("div");
+  searchBox.id = "search-menu-box";
+  searchBox.style.cssText = `
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+  `;
+
+  const searchInput = document.createElement("input");
+  searchInput.type = "text";
+  searchInput.placeholder = "Search entity or UID...";
+  searchInput.style.cssText = `
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    background: #252525;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    color: #f5f5f5;
+    outline: none;
+  `;
+
+  searchBox.appendChild(searchInput);
+  searchWrapper.appendChild(searchBox);
+
+  const recommendationsBox = document.createElement("div");
+  recommendationsBox.id = "search-recommendations";
+  recommendationsBox.style.cssText = `
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: none;
+    z-index: 10;
+    background-color: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px 6px 0 0;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 4px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+  `;
+  searchWrapper.appendChild(recommendationsBox);
+
+  sidebarControlsGroup.appendChild(searchWrapper);
+
+  if (sidebarFooter && coordsDisplay) {
+    sidebarFooter.insertBefore(sidebarControlsGroup, coordsDisplay);
+  }
+
+  // --- SEARCH HIGHLIGHT MARKER ---
+  let searchHighlight = document.getElementById("search-highlight");
+  if (!searchHighlight) {
+    searchHighlight = document.createElement("div");
+    searchHighlight.id = "search-highlight";
+    mapContainer.appendChild(searchHighlight);
+  }
+
+  searchHighlight.style.cssText = `
+    position: absolute;
+    display: none;
+    width: ${TILE_SIZE}px;
+    height: ${TILE_SIZE}px;
+    border: 1px solid #ffffff;
+    background-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    z-index: 5;
+    transition: left 0.2s ease, top 0.2s ease;
+  `;
+
+  // --- INSERT MENU CONTAINER ---
   const insertContainer = document.createElement("div");
   insertContainer.id = "insert-menu-container";
   insertContainer.className = "insert-controls";
   viewport.appendChild(insertContainer);
 
+  // --- PANZOOM SETUP ---
   const panzoom = Panzoom(mapContainer, {
     maxScale: 50,
     minScale: 0.05,
@@ -78,6 +227,100 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
   document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
 
+  // --- SEARCH EXECUTION & RECOMMENDATIONS LOGIC ---
+  function applyHighlight(match) {
+    if (match && match.tileX !== null && match.tileY !== null) {
+      const pxX = match.tileX * TILE_SIZE;
+      const pxY = match.tileY * TILE_SIZE;
+
+      searchHighlight.style.left = `${pxX}px`;
+      searchHighlight.style.top = `${pxY}px`;
+      searchHighlight.style.display = "block";
+    } else {
+      searchHighlight.style.display = "none";
+    }
+  }
+
+  function executeSearch() {
+    const query = searchInput.value.trim().toLowerCase();
+    recommendationsBox.style.display = "none";
+    if (!query) {
+      searchHighlight.style.display = "none";
+      return;
+    }
+
+    const match = visibleEntities.find(e => 
+      (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.uid && String(e.uid) === query)
+    );
+
+    if (match) {
+      applyHighlight(match);
+    } else {
+      alert(`No entity matching "${query}" found on this map.`);
+      searchHighlight.style.display = "none";
+    }
+  }
+
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
+    recommendationsBox.innerHTML = "";
+
+    if (!query || visibleEntities.length === 0) {
+      recommendationsBox.style.display = "none";
+      return;
+    }
+
+    const matches = visibleEntities.filter(e => 
+      (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.uid && String(e.uid) === query)
+    ).slice(0, 10);
+
+    if (matches.length > 0) {
+      recommendationsBox.style.display = "block";
+      matches.forEach(match => {
+        const item = document.createElement("div");
+        item.style.cssText = `
+          padding: 6px 10px;
+          font-size: 0.8rem;
+          color: #d0d5dd;
+          cursor: pointer;
+          border-bottom: 1px solid #282828;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        `;
+        item.textContent = `${match.proto} [${match.uid}]`;
+        item.onmouseover = () => item.style.background = "#2d2d2d";
+        item.onmouseout = () => item.style.background = "transparent";
+
+        item.addEventListener("click", () => {
+          searchInput.value = match.proto;
+          recommendationsBox.style.display = "none";
+          applyHighlight(match);
+        });
+
+        recommendationsBox.appendChild(item);
+      });
+    } else {
+      recommendationsBox.style.display = "none";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!searchWrapper.contains(e.target)) {
+      recommendationsBox.style.display = "none";
+    }
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      recommendationsBox.style.display = "none";
+      executeSearch();
+    }
+  });
+
+  // --- HELPER FUNCTIONS ---
   function getMapFolderName(mapUrl) {
     if (!mapUrl) return "default";
     const filename = mapUrl.split('/').pop().split('\\').pop();
@@ -373,8 +616,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function parseEntitiesProtoGrouped(rawText, mapFolderName) {
-    clearOverlayImages();
-
     const rawEntities = parseYMLToEntities(rawText);
     if (rawEntities.length === 0) return [];
 
@@ -577,6 +818,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadMapData(mapUrl) {
     allParsedEntities = [];
     visibleEntities = [];
+    
+    clearOverlayImages();
+    insertDataMap.clear();
+    searchInput.value = "";
+    recommendationsBox.style.display = "none";
+    searchHighlight.style.display = "none";
+
     insertContainer.style.display = "none";
 
     if (!mapUrl) return;
@@ -603,7 +851,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTileX = null;
   let currentTileY = null;
 
+  if (coordsDisplay) {
+    coordsDisplay.textContent = "X: --, Y: --";
+  }
+
   function updateTileHover(event) {
+    if (!coordsDisplay) return;
+
     if (isPanning || (event.buttons & 1) === 1 || !elem.naturalWidth || !elem.naturalHeight || !elem.complete) {
       hideHoverTile();
       coordsDisplay.textContent = "X: --, Y: --";
@@ -727,14 +981,19 @@ document.addEventListener("DOMContentLoaded", () => {
     contextMenu.style.display = "none";
   });
 
-  listItems.forEach((item) => {
-    item.addEventListener("click", () => {
-      listItems.forEach((li) => li.classList.remove("active"));
+  // Event Listener for Map list items (using delegation for nested inputs)
+  if (imageListContainer) {
+    imageListContainer.addEventListener("click", (event) => {
+      const item = event.target.closest("li");
+      if (!item) return;
+
+      const allItems = imageListContainer.querySelectorAll("li");
+      allItems.forEach((li) => li.classList.remove("active"));
       item.classList.add("active");
 
       hideHoverTile();
       contextMenu.style.display = "none";
-      coordsDisplay.textContent = "X: --, Y: --";
+      if (coordsDisplay) coordsDisplay.textContent = "X: --, Y: --";
 
       const newSrc = item.getAttribute("data-src");
       const mapSrc = item.getAttribute("data-map");
@@ -747,5 +1006,5 @@ document.addEventListener("DOMContentLoaded", () => {
         hideHoverTile();
       };
     });
-  });
+  }
 });

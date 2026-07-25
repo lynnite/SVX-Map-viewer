@@ -79,6 +79,73 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Sidebar Dropdown Categories */
+.sidebar-category {
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.sidebar-category summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.65rem 0.85rem;
+  background-color: #222222;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c5c5c5;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-category summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-category summary:hover {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border-color: #444444;
+}
+
+/* Adjust summary border when open to seamlessly attach to content box */
+.sidebar-category[open] summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+  background-color: #252525;
+  color: #ffffff;
+}
+
+/* Category Content Box matching summary dimensions */
+.sidebar-category ul {
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #1a1a1a;
+  border: 1px solid #333333;
+  border-top: none; /* Merges cleanly with the summary header */
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Nested Map Item Adjustments */
+.sidebar-category ul li {
+  margin-bottom: 0; /* Clears default list item bottom margin inside dropdown */
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .sidebar-footer {
   padding: 1rem 1.25rem;
   border-top: 1px solid #2d2d2d;
@@ -140,7 +207,7 @@ body {
   width: 32px;
   height: 32px;
   border: 1px solid rgba(255, 255, 255, 0.9);
-  background-color: rgba(255, 255, 255, 0.2); /* Translucent white/gray */
+  background-color: rgba(255, 255, 255, 0.2);
   box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.4);
   pointer-events: none;
   display: none;
@@ -306,26 +373,23 @@ body {
   cursor: pointer;
 }
 
-/* Container for the inserts dropdown details */
 .insert-dropdown {
   margin-bottom: 6px;
   background-color: transparent;
 }
 
-/* Custom summary row acting as the title header */
 .insert-dropdown summary {
-  list-style: none; /* Hide default browser triangle */
+  list-style: none;
   cursor: pointer;
   user-select: none;
-  font-size: 0.85rem; /* Slightly smaller text */
+  font-size: 0.85rem;
   padding: 4px 6px;
 }
 
 .insert-dropdown summary::-webkit-details-marker {
-  display: none; /* Hide default Chrome/Safari triangle */
+  display: none;
 }
 
-/* Arrow indicator replacing the checkbox */
 .dropdown-arrow {
   display: inline-block;
   margin-right: 6px;
@@ -333,26 +397,23 @@ body {
   transition: transform 0.15s ease;
 }
 
-/* Rotate arrow when dropdown is open */
 .insert-dropdown[open] .dropdown-arrow {
   transform: rotate(90deg);
 }
 
-/* Sub-box for the dropdown's variation items */
 .insert-submenu {
-  background-color: rgba(0, 0, 0, 0.35); /* Darker than insert menu background */
+  background-color: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0px; /* Strictly square / no rounded corners */
+  border-radius: 0px;
   padding: 6px 8px;
   margin-top: 4px;
   margin-bottom: 4px;
 }
 
-/* Make child variation rows smaller */
 .insert-row.child-row {
   display: flex;
   align-items: center;
-  font-size: 0.8rem; /* Slightly smaller text */
+  font-size: 0.8rem;
   padding: 2px 0;
 }
 
@@ -361,4 +422,34 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Sidebar Dropdown Category Arrow Transitions */
+.category-arrow {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 0.7rem;
+  /* Smooth transform transition */
+  transition: transform 0.2s ease-in-out;
+  transform-origin: center;
+}
+
+/* Rotate arrow 90 degrees when the category details element is open */
+.sidebar-category[open] > summary .category-arrow {
+  transform: rotate(90deg);
+}
+
+/* Map Inserts Dropdown Arrow Transitions */
+.dropdown-arrow {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.75rem;
+  /* Smooth transform transition */
+  transition: transform 0.2s ease-in-out;
+  transform-origin: center;
+}
+
+/* Rotate arrow 90 degrees when the map insert details element is open */
+.insert-dropdown[open] > summary .dropdown-arrow {
+  transform: rotate(90deg);
 }
