@@ -1,0 +1,22 @@
+- id: RMCMapInsertHybrisaCLFSpaceport
+  chance: 0.1
+  direction: north
+  offset: [-12, -22]
+
+- id: RMCMapInsertHybrisaTSEAirbase
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertHybrisaTSEAirbaseIntact
+  chance: 0.28
+  direction: north
+
+- id: RMCMapInsertHybrisaSurvivorSpawns
+  direction: north
+  variations:
+    - id: SurvSpawnApartments
+      chance: 0.33
+    - id: SurvSpawnMeridianNodisplay
+      chance: 0.34
+    - id: SurvSpawnBarNodisplay
+      chance: 0.33

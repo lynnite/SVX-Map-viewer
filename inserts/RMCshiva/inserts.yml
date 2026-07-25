@@ -1,0 +1,29 @@
+- id: RMCMapInsertShivaSouthCaves
+  direction: north
+  variations:
+    - id: BuiltupLz2SouthCaves
+      chance: 0.30
+    - id: DestroyedLz2SouthCaves
+      chance: 0.20
+
+- id: RMCMapInsertShivaPanicRoomHold
+  chance: 0.15
+  direction: north
+
+- id: RMCMapInsertShivaCLFRaid
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertShivaSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnChurch
+      chance: 0.2
+    - id: SurvSpawnCommandCentreNodisplay
+      chance: 0.2
+    - id: SurvSpawnBotanyNodisplay
+      chance: 0.2
+    - id: SurvSpawnCrisisCentreNodisplay
+      chance: 0.2
+    - id: SurvSpawnGarageNodisplay
+      chance: 0.2

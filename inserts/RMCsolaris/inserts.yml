@@ -1,0 +1,115 @@
+- id: RMCMapInsertSolarisMedbay
+  direction: north
+  variations:
+    - id: MedbayV3
+      chance: 0.13
+    - id: MedbayPassage
+      chance: 0.37
+      offset: [21, 1]
+
+- id: RMCMapInsertSolarisLambdaCaveShortcuts
+  direction: north
+  variations:
+    - id: LambdaCaveExtratunnel
+      chance: 0.25
+    - id: LambdaCaveMushroom
+      chance: 0.25
+      offset: [22, -48]
+
+- id: RMCMapInsertSolarisSeCheckpoint
+  chance: 0.7
+  direction: north
+
+- id: RMCMapInsertSolarisLambdaGraveyard
+  chance: 0.5
+  direction: north
+
+- id: RMCMapInsertSolarisViroOpen
+  chance: 0.4
+  direction: north
+
+- id: RMCMapInsertSolarisDormsParty
+  chance: 0.4
+  direction: north
+
+- id: RMCMapInsertSolarisAdminPMC
+  chance: 0.4
+  direction: north
+
+- id: RMCMapInsertSolarisFiltrationRestored
+  chance: 0.35
+  direction: north
+
+- id: RMCMapInsertSolarisCargoContainers
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertSolarisViroRockOpen
+  chance: 0.3
+  direction: north
+
+- id: RMCMapInsertSolarisLZ1CaveFlank
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertSolarisChapelCult
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertSolarisVault
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertSolarisLZ1ContainersScramble
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertSolarisContainerroomXenos
+  chance: 0.25
+  direction: north
+
+- id: RMCMapInsertSolarisETATunnelOpen
+  chance: 0.2
+  direction: north
+
+- id: RMCMapInsertSolarisLZ1Entrance
+  chance: 0.2
+  direction: north
+
+- id: RMCMapInsertSolarisLZ1NorthMining
+  chance: 0.2
+  direction: north
+
+- id: RMCMapInsertSolarisReactorMeltdown
+  chance: 0.15
+  direction: north
+
+- id: RMCMapInsertSolarisTCommsOpen
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertSolarisCrashlandingOffices
+  chance: 0.2
+  direction: north
+
+- id: RMCMapInsertSolarisCrashlandingEva
+  chance: 0.2
+  offset: [-9, -25]
+
+- id: RMCMapInsertSolarisCLFMining
+  chance: 0.1
+  direction: north
+
+- id: RMCMapInsertSolarisSurvSpawnTogether
+  direction: north
+  variations:
+    - id: SurvSpawnAdmin
+      chance: 0.2
+    - id: SurvSpawnBarNodisplay
+      chance: 0.2
+    - id: SurvSpawnOfficeNodisplay
+      chance: 0.2
+    - id: SurvSpawnSouthMarshalsNodisplay
+      chance: 0.2
+    - id: SurvSpawnStorageNodisplay
+      chance: 0.2

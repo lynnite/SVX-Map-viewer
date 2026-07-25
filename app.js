@@ -335,6 +335,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${num}%`;
   }
 
+  // Generic offset parser to extract [x, y] coordinates from any format
+  function parseOffset(rawOffset) {
+    if (!rawOffset) return null;
+
+    if (Array.isArray(rawOffset) && rawOffset.length >= 2) {
+      const x = parseFloat(rawOffset[0]);
+      const y = parseFloat(rawOffset[1]);
+      if (!isNaN(x) && !isNaN(y)) return [x, y];
+    }
+
+    if (typeof rawOffset === "object") {
+      const x = parseFloat(rawOffset.x ?? rawOffset[0]);
+      const y = parseFloat(rawOffset.y ?? rawOffset[1]);
+      if (!isNaN(x) && !isNaN(y)) return [x, y];
+    }
+
+    if (typeof rawOffset === "string") {
+      const matches = rawOffset.match(/-?\d+(?:\.\d+)?/g);
+      if (matches && matches.length >= 2) {
+        const x = parseFloat(matches[0]);
+        const y = parseFloat(matches[1]);
+        if (!isNaN(x) && !isNaN(y)) return [x, y];
+      }
+    }
+
+    return null;
+  }
+
   async function loadInsertMetadata(mapFolderName) {
     insertDataMap.clear();
     const yamlUrl = `inserts/${mapFolderName}/inserts.yml`;
@@ -354,7 +382,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const insertId = item.id || item.type || item.proto;
         if (!insertId) return;
 
-        const parentDirection = item.direction || item.dir || item.orientation || null;
+        let parentDirection = item.direction || item.dir || item.orientation || null;
+        let parentOffset = parseOffset(item.offset);
+
+        // If a valid offset exists, discard direction logic
+        if (parentOffset) {
+          parentDirection = null;
+        }
+
         const parentChance = formatChance(item.chance ?? item.probability ?? item.spawnChance ?? item.weight);
 
         const rawVariations = item.variations;
@@ -367,10 +402,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (typeof v === 'object' && v !== null) {
               if (v.id || v.proto) {
                 if (currentVarObj) variationList.push(currentVarObj);
+
+                let varOffset = parseOffset(v.offset) || parentOffset;
+                let varDir = v.direction || parentDirection;
+
+                if (varOffset) {
+                  varDir = null;
+                }
+
                 currentVarObj = {
                   id: v.id || v.proto,
                   chance: formatChance(v.chance ?? v.probability ?? v.weight),
-                  direction: v.direction || parentDirection
+                  direction: varDir,
+                  offset: varOffset
                 };
               } else if (v.chance !== undefined && currentVarObj) {
                 currentVarObj.chance = formatChance(v.chance);
@@ -385,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
         insertDataMap.set(normalizedParentKey, {
           id: insertId,
           direction: parentDirection,
+          offset: parentOffset,
           chance: parentChance,
           variations: variationList
         });
@@ -394,6 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
           insertDataMap.set(varKey, {
             id: v.id,
             direction: v.direction || parentDirection,
+            offset: v.offset || parentOffset,
             chance: v.chance,
             parentProto: insertId,
             isVariation: true
@@ -538,6 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tileY: tileY,
       chance: customData.chance,
       dir: customData.direction,
+      offset: customData.offset || null,
       parentProto: customData.parentProto || null,
       variations: customData.variations || [],
       entities: []
@@ -554,7 +601,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let targetTileX = insertObj.tileX;
     let targetTileY = insertObj.tileY;
 
-    if (insertObj.dir) {
+    // Apply any explicit [x, y] offset values directly, ignoring direction calculations
+    if (insertObj.offset && Array.isArray(insertObj.offset)) {
+      targetTileX += insertObj.offset[0];
+      targetTileY += insertObj.offset[1];
+    } else if (insertObj.dir) {
       const dir = String(insertObj.dir).trim().toLowerCase();
       if (dir === "north" || dir === "0") {
         targetTileY = insertObj.tileY - (tilesTall - 1);
@@ -641,7 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const entity of parsed) {
       if (entity.isInsert && entity.tileX !== null && !availableInserts.has(entity.proto)) {
         const normalizedProto = entity.proto.toLowerCase();
-        const customData = insertDataMap.get(normalizedProto) || { direction: null, chance: null, variations: [] };
+        const customData = insertDataMap.get(normalizedProto) || { direction: null, offset: null, chance: null, variations: [] };
 
         const parentData = registerInsertPlaceholder(entity.proto, entity.tileX, entity.tileY, customData, mapFolderName);
         availableInserts.set(entity.proto, parentData);
@@ -651,6 +702,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!availableInserts.has(varItem.id)) {
               const varCustomData = {
                 direction: varItem.direction || customData.direction,
+                offset: varItem.offset || customData.offset,
                 chance: varItem.chance,
                 parentProto: entity.proto
               };
@@ -981,30 +1033,23 @@ document.addEventListener("DOMContentLoaded", () => {
     contextMenu.style.display = "none";
   });
 
-  // Event Listener for Map list items (using delegation for nested inputs)
+  // Event Listener for Map list items
   if (imageListContainer) {
     imageListContainer.addEventListener("click", (event) => {
       const item = event.target.closest("li");
       if (!item) return;
 
-      const allItems = imageListContainer.querySelectorAll("li");
-      allItems.forEach((li) => li.classList.remove("active"));
+      document.querySelectorAll("#image-list li").forEach(li => li.classList.remove("active"));
       item.classList.add("active");
 
-      hideHoverTile();
-      contextMenu.style.display = "none";
-      if (coordsDisplay) coordsDisplay.textContent = "X: --, Y: --";
+      const mapUrl = item.getAttribute("data-map");
+      const imgUrl = item.getAttribute("data-src");
 
-      const newSrc = item.getAttribute("data-src");
-      const mapSrc = item.getAttribute("data-map");
+      if (imgUrl) {
+        elem.src = imgUrl;
+      }
 
-      elem.src = newSrc;
-      loadMapData(mapSrc);
-
-      elem.onload = () => {
-        panzoom.reset();
-        hideHoverTile();
-      };
+      loadMapData(mapUrl);
     });
   }
 });
