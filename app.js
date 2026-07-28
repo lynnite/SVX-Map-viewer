@@ -120,13 +120,15 @@ document.addEventListener("DOMContentLoaded", () => {
     display: flex;
     width: 100%;
     box-sizing: border-box;
+    align-items: center;
   `;
 
   const searchInput = document.createElement("input");
   searchInput.type = "text";
-  searchInput.placeholder = "Search entity or UID...";
+  searchInput.placeholder = "Search name, entity ID, or UID...";
   searchInput.style.cssText = `
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 6px 10px;
     font-size: 0.85rem;
     box-sizing: border-box;
@@ -137,7 +139,65 @@ document.addEventListener("DOMContentLoaded", () => {
     outline: none;
   `;
 
+  const searchNav = document.createElement("div");
+  searchNav.id = "search-nav-controls";
+  searchNav.style.cssText = `
+    display: none;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    flex-shrink: 0;
+  `;
+
+  const prevMatchBtn = document.createElement("button");
+  prevMatchBtn.innerHTML = "&lt;";
+  prevMatchBtn.title = "Previous match (Left arrow)";
+  prevMatchBtn.style.cssText = `
+    background: #282828;
+    border: 1px solid #3d3d3d;
+    color: #e0e0e0;
+    border-radius: 0px;
+    padding: 3px 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  const searchCountDisplay = document.createElement("span");
+  searchCountDisplay.style.cssText = `
+    font-size: 0.75rem;
+    color: #a0a0a0;
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+    user-select: none;
+  `;
+
+  const nextMatchBtn = document.createElement("button");
+  nextMatchBtn.innerHTML = "&gt;";
+  nextMatchBtn.title = "Next match (Right arrow / Enter)";
+  nextMatchBtn.style.cssText = `
+    background: #282828;
+    border: 1px solid #3d3d3d;
+    color: #e0e0e0;
+    border-radius: 0px;
+    padding: 3px 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  searchNav.appendChild(prevMatchBtn);
+  searchNav.appendChild(searchCountDisplay);
+  searchNav.appendChild(nextMatchBtn);
+
   searchBox.appendChild(searchInput);
+  searchBox.appendChild(searchNav);
   searchWrapper.appendChild(searchBox);
 
   const recommendationsBox = document.createElement("div");
@@ -223,11 +283,64 @@ document.addEventListener("DOMContentLoaded", () => {
     else panzoom.zoomOut({ animate: false });
   }, { passive: false });
 
+  function resetToFit(animate = false) {
+    const mapWidth = elem.naturalWidth || elem.clientWidth;
+    const mapHeight = elem.naturalHeight || elem.clientHeight;
+    const vpWidth = viewport.clientWidth;
+    const vpHeight = viewport.clientHeight;
+
+    if (!mapWidth || !mapHeight || !vpWidth || !vpHeight) {
+      panzoom.reset({ animate });
+      return;
+    }
+
+    const scaleX = (vpWidth * 0.95) / mapWidth;
+    const scaleY = (vpHeight * 0.95) / mapHeight;
+    const fitScale = Math.min(scaleX, scaleY, 1.0);
+
+    panzoom.zoom(fitScale, { animate });
+    panzoom.pan(0, 0, { animate });
+  }
+
+  elem.addEventListener("load", () => {
+    resetToFit(false);
+  });
+
   document.getElementById("zoom-in").addEventListener("click", () => panzoom.zoomIn());
   document.getElementById("zoom-out").addEventListener("click", () => panzoom.zoomOut());
-  document.getElementById("reset-view").addEventListener("click", () => panzoom.reset());
+  document.getElementById("reset-view").addEventListener("click", () => resetToFit(true));
 
   // --- SEARCH EXECUTION & RECOMMENDATIONS LOGIC ---
+  let currentSearchResults = [];
+  let currentSearchIndex = 0;
+
+  function updateSearchNavUI() {
+    if (currentSearchResults.length > 1) {
+      searchNav.style.display = "flex";
+      searchCountDisplay.textContent = `${currentSearchIndex + 1}/${currentSearchResults.length}`;
+    } else {
+      searchNav.style.display = "none";
+    }
+  }
+
+  function goToMatch(index) {
+    if (currentSearchResults.length === 0) return;
+    currentSearchIndex = (index + currentSearchResults.length) % currentSearchResults.length;
+    updateSearchNavUI();
+    const match = currentSearchResults[currentSearchIndex];
+    if (match) {
+      bringToEntity(match);
+    }
+  }
+
+  prevMatchBtn.addEventListener("click", () => {
+    goToMatch(currentSearchIndex - 1);
+  });
+
+  nextMatchBtn.addEventListener("click", () => {
+    goToMatch(currentSearchIndex + 1);
+  });
+
   function applyHighlight(match) {
     if (match && match.tileX !== null && match.tileY !== null) {
       const pxX = match.tileX * TILE_SIZE;
@@ -241,22 +354,56 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function executeSearch() {
-    const query = searchInput.value.trim().toLowerCase();
-    recommendationsBox.style.display = "none";
-    if (!query) {
+  function bringToEntity(match) {
+    if (!match || match.tileX === null || match.tileY === null) {
       searchHighlight.style.display = "none";
       return;
     }
 
-    const match = visibleEntities.find(e => 
+    applyHighlight(match);
+
+    const mapWidth = elem.naturalWidth || mapContainer.clientWidth;
+    const mapHeight = elem.naturalHeight || mapContainer.clientHeight;
+
+    if (!mapWidth || !mapHeight) return;
+
+    const tileCenterX = match.tileX * TILE_SIZE + TILE_SIZE / 2;
+    const tileCenterY = match.tileY * TILE_SIZE + TILE_SIZE / 2;
+
+    const currentScale = panzoom.getScale();
+    const targetScale = Math.max(currentScale, 2.0);
+
+    const targetX = mapWidth / 2 - tileCenterX;
+    const targetY = mapHeight / 2 - tileCenterY;
+
+    panzoom.zoom(targetScale, { animate: true });
+    panzoom.pan(targetX, targetY, { animate: true });
+  }
+
+  function executeSearch(queryOverride) {
+    const query = (queryOverride !== undefined ? queryOverride : searchInput.value).trim().toLowerCase();
+    recommendationsBox.style.display = "none";
+    if (!query) {
+      currentSearchResults = [];
+      currentSearchIndex = 0;
+      updateSearchNavUI();
+      searchHighlight.style.display = "none";
+      return;
+    }
+
+    currentSearchResults = visibleEntities.filter(e => 
       (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.proto && getEntityDisplayName(e.proto).toLowerCase().includes(query)) ||
       (e.uid && String(e.uid) === query)
     );
 
-    if (match) {
-      applyHighlight(match);
+    if (currentSearchResults.length > 0) {
+      currentSearchIndex = 0;
+      goToMatch(0);
     } else {
+      currentSearchResults = [];
+      currentSearchIndex = 0;
+      updateSearchNavUI();
       alert(`No entity matching "${query}" found on this map.`);
       searchHighlight.style.display = "none";
     }
@@ -273,6 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const matches = visibleEntities.filter(e => 
       (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.proto && getEntityDisplayName(e.proto).toLowerCase().includes(query)) ||
       (e.uid && String(e.uid) === query)
     ).slice(0, 10);
 
@@ -290,14 +438,28 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow: hidden;
           text-overflow: ellipsis;
         `;
-        item.textContent = `${match.proto} [${match.uid}]`;
+        const displayName = getEntityDisplayName(match.proto);
+        item.textContent = displayName !== match.proto
+          ? `${displayName} — ${match.proto} [${match.uid}]`
+          : `${match.proto} [${match.uid}]`;
         item.onmouseover = () => item.style.background = "#2d2d2d";
         item.onmouseout = () => item.style.background = "transparent";
 
         item.addEventListener("click", () => {
-          searchInput.value = match.proto;
+          searchInput.value = displayName;
           recommendationsBox.style.display = "none";
-          applyHighlight(match);
+
+          currentSearchResults = visibleEntities.filter(e => 
+            (e.proto && e.proto.toLowerCase() === match.proto.toLowerCase()) ||
+            (e.uid && String(e.uid) === String(match.uid))
+          );
+
+          const foundIndex = currentSearchResults.findIndex(e => e === match || (e.uid && e.uid === match.uid));
+          if (foundIndex !== -1) {
+            goToMatch(foundIndex);
+          } else {
+            goToMatch(0);
+          }
         });
 
         recommendationsBox.appendChild(item);
@@ -316,7 +478,21 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       recommendationsBox.style.display = "none";
-      executeSearch();
+      if (currentSearchResults.length > 1) {
+        goToMatch(currentSearchIndex + 1);
+      } else {
+        executeSearch();
+      }
+    } else if (e.key === "ArrowRight") {
+      if (currentSearchResults.length > 1) {
+        e.preventDefault();
+        goToMatch(currentSearchIndex + 1);
+      }
+    } else if (e.key === "ArrowLeft") {
+      if (currentSearchResults.length > 1) {
+        e.preventDefault();
+        goToMatch(currentSearchIndex - 1);
+      }
     }
   });
 
@@ -868,12 +1044,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadMapData(mapUrl) {
+    resetToFit(false);
     allParsedEntities = [];
     visibleEntities = [];
     
     clearOverlayImages();
     insertDataMap.clear();
     searchInput.value = "";
+    currentSearchResults = [];
+    currentSearchIndex = 0;
+    updateSearchNavUI();
     recommendationsBox.style.display = "none";
     searchHighlight.style.display = "none";
 
@@ -968,14 +1148,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderEntityMenuItem(item, isInsert) {
     const li = document.createElement("li");
-    li.textContent = `${item.proto} [${item.uid}]`;
+    const itemName = getEntityDisplayName(item.proto);
+    li.textContent = itemName !== item.proto
+      ? `${itemName} (${item.proto}) [${item.uid}]`
+      : `${item.proto} [${item.uid}]`;
     if (isInsert) li.style.color = "#4db8ff";
     entityList.appendChild(li);
 
     if (item.contents && item.contents.length > 0) {
       item.contents.forEach(child => {
         const childLi = document.createElement("li");
-        childLi.textContent = `↳ In: ${child.proto} [${child.uid}]`;
+        const childName = getEntityDisplayName(child.proto);
+        childLi.textContent = childName !== child.proto
+          ? `↳ In: ${childName} (${child.proto}) [${child.uid}]`
+          : `↳ In: ${child.proto} [${child.uid}]`;
         childLi.style.paddingLeft = "16px";
         childLi.style.opacity = "0.85";
         childLi.style.fontSize = "0.85em";
