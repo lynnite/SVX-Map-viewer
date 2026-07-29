@@ -284,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else panzoom.zoomOut({ animate: false });
   }, { passive: false });
 
-  function resetToFit(animate = false) {
+  function resetToFit(animate = false) {https://github.com/lynnite/SVX-Map-viewer/pull/32
     const mapWidth = elem.naturalWidth || elem.clientWidth;
     const mapHeight = elem.naturalHeight || elem.clientHeight;
     const vpWidth = viewport.clientWidth;
@@ -327,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function goToMatch(index) {
     if (currentSearchResults.length === 0) return;
     currentSearchIndex = (index + currentSearchResults.length) % currentSearchResults.length;
-    updateSearchNavUI();
+    updateSearchNavUI();https://github.com/lynnite/SVX-Map-viewer/pull/32
     const match = currentSearchResults[currentSearchIndex];
     if (match) {
       bringToEntity(match);
