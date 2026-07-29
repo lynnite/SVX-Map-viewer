@@ -16,4 +16,4 @@ Tool for automatically formatting inserts.yml [here](https://github.com/lynnite/
 
 ## License
 
-All code licensed under MIT
+All code licensed under [MIT](https://github.com/lynnite/SVX-Map-viewer/blob/main/LICENSE)
