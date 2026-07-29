@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     position: relative;
     display: inline-block;
   `;
-
+  
   elem.parentNode.insertBefore(mapContainer, elem);
   mapContainer.appendChild(elem);
   elem.style.display = "block";
@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const searchInput = document.createElement("input");
   searchInput.type = "text";
-  searchInput.placeholder = "Search name, entity ID, or UID...";
+  searchInput.placeholder = "Search entity or UID...";
   searchInput.style.cssText = `
     flex: 1;
     min-width: 0;
@@ -257,8 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const panzoom = Panzoom(mapContainer, {
     maxScale: 50,
     minScale: 0.05,
-    canvas: true,
-    step: 0.15
+    canvas: true
   });
 
   mapContainer.addEventListener("panzoomstart", () => {
@@ -284,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else panzoom.zoomOut({ animate: false });
   }, { passive: false });
 
-  function resetToFit(animate = false) {https://github.com/lynnite/SVX-Map-viewer/pull/32
+  function resetToFit(animate = false) {
     const mapWidth = elem.naturalWidth || elem.clientWidth;
     const mapHeight = elem.naturalHeight || elem.clientHeight;
     const vpWidth = viewport.clientWidth;
@@ -327,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function goToMatch(index) {
     if (currentSearchResults.length === 0) return;
     currentSearchIndex = (index + currentSearchResults.length) % currentSearchResults.length;
-    updateSearchNavUI();https://github.com/lynnite/SVX-Map-viewer/pull/32
+    updateSearchNavUI();
     const match = currentSearchResults[currentSearchIndex];
     if (match) {
       bringToEntity(match);
@@ -381,14 +380,6 @@ document.addEventListener("DOMContentLoaded", () => {
     panzoom.pan(targetX, targetY, { animate: true });
   }
 
-  function entityMatchesQuery(e, query) {
-    if (!e.proto) return false;
-    const tokens = query.split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) return false;
-    const haystack = (e.proto + " " + getEntityDisplayName(e.proto)).toLowerCase();
-    return tokens.every(t => haystack.includes(t));
-  }
-
   function executeSearch(queryOverride) {
     const query = (queryOverride !== undefined ? queryOverride : searchInput.value).trim().toLowerCase();
     recommendationsBox.style.display = "none";
@@ -400,29 +391,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const uidMatches = visibleEntities.filter(e => e.uid && String(e.uid) === query);
-
-    let resultsPool;
-    if (uidMatches.length > 0) {
-      resultsPool = uidMatches;
-    } else {
-      const broadMatches = visibleEntities.filter(e => entityMatchesQuery(e, query));
-
-      const bestProto = pickBestMatchingProto(broadMatches, query);
-      resultsPool = bestProto
-        ? broadMatches.filter(e => e.proto === bestProto)
-        : broadMatches;
-    }
-
-    currentSearchResults = resultsPool;
+    currentSearchResults = visibleEntities.filter(e => 
+      (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.uid && String(e.uid) === query)
+    );
 
     if (currentSearchResults.length > 0) {
       currentSearchIndex = 0;
       goToMatch(0);
-      const resolvedProto = currentSearchResults[0].proto;
-      if (resolvedProto) {
-        searchInput.value = getEntityDisplayName(resolvedProto);
-      }
     } else {
       currentSearchResults = [];
       currentSearchIndex = 0;
@@ -430,42 +406,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`No entity matching "${query}" found on this map.`);
       searchHighlight.style.display = "none";
     }
-  }
-
-  function pickBestMatchingProto(matches, query) {
-    if (matches.length === 0) return null;
-
-    const seen = new Map();
-    for (const e of matches) {
-      if (e.proto && !seen.has(e.proto)) {
-        seen.set(e.proto, getEntityDisplayName(e.proto).toLowerCase());
-      }
-    }
-    if (seen.size <= 1) return matches[0].proto || null;
-
-    const tokens = query.split(/\s+/).filter(Boolean);
-
-    let best = null;
-    let bestScore = Infinity;
-    for (const [proto, name] of seen) {
-      const protoLower = proto.toLowerCase();
-      const nameWords = name.split(/\W+/).filter(Boolean);
-      let score;
-      if (name === query) score = 0;
-      else if (protoLower === query) score = 1;
-      else if (name.startsWith(query)) score = 2;
-      else if (protoLower.startsWith(query)) score = 3;
-      else if (tokens.every(t => nameWords.includes(t))) score = 4;
-      else if (name.includes(query)) score = 5;
-      else if (protoLower.includes(query)) score = 6;
-      else score = 7;
-
-      if (score < bestScore || (score === bestScore && name.length < seen.get(best).length)) {
-        bestScore = score;
-        best = proto;
-      }
-    }
-    return best;
   }
 
   searchInput.addEventListener("input", () => {
@@ -477,21 +417,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const rawMatches = visibleEntities.filter(e =>
-      entityMatchesQuery(e, query) || (e.uid && String(e.uid) === query)
-    );
-
-    const grouped = new Map();
-    for (const e of rawMatches) {
-      if (!e.proto) continue;
-      if (!grouped.has(e.proto)) grouped.set(e.proto, { entity: e, count: 0 });
-      grouped.get(e.proto).count++;
-    }
-    const matches = Array.from(grouped.values()).slice(0, 10);
+    const matches = visibleEntities.filter(e => 
+      (e.proto && e.proto.toLowerCase().includes(query)) ||
+      (e.uid && String(e.uid) === query)
+    ).slice(0, 10);
 
     if (matches.length > 0) {
       recommendationsBox.style.display = "block";
-      matches.forEach(({ entity: match, count }) => {
+      matches.forEach(match => {
         const item = document.createElement("div");
         item.style.cssText = `
           padding: 6px 10px;
@@ -503,22 +436,25 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow: hidden;
           text-overflow: ellipsis;
         `;
-        const displayName = getEntityDisplayName(match.proto);
-        const countLabel = count > 1 ? ` (${count} on map)` : "";
-        item.textContent = displayName !== match.proto
-          ? `${displayName} — ${match.proto}${countLabel}`
-          : `${match.proto}${countLabel}`;
+        item.textContent = `${match.proto} [${match.uid}]`;
         item.onmouseover = () => item.style.background = "#2d2d2d";
         item.onmouseout = () => item.style.background = "transparent";
 
         item.addEventListener("click", () => {
-          searchInput.value = displayName;
+          searchInput.value = match.proto;
           recommendationsBox.style.display = "none";
 
-          currentSearchResults = visibleEntities.filter(e => e.proto === match.proto);
+          currentSearchResults = visibleEntities.filter(e => 
+            (e.proto && e.proto.toLowerCase().includes(match.proto.toLowerCase())) ||
+            (e.uid && String(e.uid) === String(match.uid))
+          );
 
           const foundIndex = currentSearchResults.findIndex(e => e === match || (e.uid && e.uid === match.uid));
-          goToMatch(foundIndex !== -1 ? foundIndex : 0);
+          if (foundIndex !== -1) {
+            goToMatch(foundIndex);
+          } else {
+            goToMatch(0);
+          }
         });
 
         recommendationsBox.appendChild(item);
@@ -725,8 +661,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentUid = parentMatch ? parentMatch[1] : null;
 
         let localPos = null;
-        const posMatch = entityBlock.match(/pos:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i) ||
-          entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+        const posMatch = entityBlock.match(/pos:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i) || 
+                         entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
 
         if (posMatch) {
           localPos = { x: parseFloat(posMatch[1]), y: parseFloat(posMatch[2]) };
@@ -997,7 +933,7 @@ document.addEventListener("DOMContentLoaded", () => {
         details.className = "insert-dropdown";
 
         const summary = document.createElement("summary");
-
+        
         const arrow = document.createElement("span");
         arrow.className = "dropdown-arrow";
         arrow.textContent = "▶";
@@ -1106,7 +1042,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resetToFit(false);
     allParsedEntities = [];
     visibleEntities = [];
-
+    
     clearOverlayImages();
     insertDataMap.clear();
     searchInput.value = "";
@@ -1126,7 +1062,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const rawText = await response.text();
       const mapFolderName = getMapFolderName(mapUrl);
-
+      
       await loadInsertMetadata(mapFolderName);
       allParsedEntities = await parseEntitiesProtoGrouped(rawText, mapFolderName);
 
@@ -1207,20 +1143,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderEntityMenuItem(item, isInsert) {
     const li = document.createElement("li");
-    const itemName = getEntityDisplayName(item.proto);
-    li.textContent = itemName !== item.proto
-      ? `${itemName} (${item.proto}) [${item.uid}]`
-      : `${item.proto} [${item.uid}]`;
+    li.textContent = `${item.proto} [${item.uid}]`;
     if (isInsert) li.style.color = "#4db8ff";
     entityList.appendChild(li);
 
     if (item.contents && item.contents.length > 0) {
       item.contents.forEach(child => {
         const childLi = document.createElement("li");
-        const childName = getEntityDisplayName(child.proto);
-        childLi.textContent = childName !== child.proto
-          ? `↳ In: ${childName} (${child.proto}) [${child.uid}]`
-          : `↳ In: ${child.proto} [${child.uid}]`;
+        childLi.textContent = `↳ In: ${child.proto} [${child.uid}]`;
         childLi.style.paddingLeft = "16px";
         childLi.style.opacity = "0.85";
         childLi.style.fontSize = "0.85em";
