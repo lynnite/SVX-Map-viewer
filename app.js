@@ -8,6 +8,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const entityList = document.getElementById("entity-list");
   const menuTitle = document.getElementById("menu-tile-title");
   const sidebarFooter = document.querySelector(".sidebar-footer");
+  const themeToggleBtn = document.getElementById("theme-toggle");
+
+  // light and dark mode
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light") {
+    document.body.classList.add("light-mode");
+  } else {
+    document.body.classList.remove("light-mode");
+  }
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("light-mode");
+      const isLight = document.body.classList.contains("light-mode");
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+    });
+  }
 
   const TILE_SIZE = 32;
 
@@ -147,19 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.createElement("input");
   searchInput.type = "text";
   searchInput.placeholder = "Search name, entity ID, or UID...";
-  searchInput.style.cssText = `
-    flex: 1;
-    min-width: 0;
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    background: #252525;
-    border: 1px solid #333333;
-    border-radius: 0px;
-    color: #f5f5f5;
-    outline: none;
-    font-family: inherit;
-  `;
 
   const searchNav = document.createElement("div");
   searchNav.id = "search-nav-controls";
@@ -174,47 +178,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevMatchBtn = document.createElement("button");
   prevMatchBtn.innerHTML = "&lt;";
   prevMatchBtn.title = "Previous match (Left arrow)";
-  prevMatchBtn.style.cssText = `
-    background: #282828;
-    border: 1px solid #3d3d3d;
-    color: #e0e0e0;
-    border-radius: 0px;
-    padding: 3px 6px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: inherit;
-  `;
 
   const searchCountDisplay = document.createElement("span");
-  searchCountDisplay.style.cssText = `
-    font-size: 0.75rem;
-    color: #a0a0a0;
-    font-family: inherit;
-    white-space: nowrap;
-    user-select: none;
-  `;
 
   const nextMatchBtn = document.createElement("button");
   nextMatchBtn.innerHTML = "&gt;";
   nextMatchBtn.title = "Next match (Right arrow / Enter)";
-  nextMatchBtn.style.cssText = `
-    background: #282828;
-    border: 1px solid #3d3d3d;
-    color: #e0e0e0;
-    border-radius: 0px;
-    padding: 3px 6px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: inherit;
-  `;
 
   searchNav.appendChild(prevMatchBtn);
   searchNav.appendChild(searchCountDisplay);
@@ -226,24 +195,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const recommendationsBox = document.createElement("div");
   recommendationsBox.id = "search-recommendations";
-  recommendationsBox.style.cssText = `
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    width: 100%;
-    box-sizing: border-box;
-    display: none;
-    z-index: 10;
-    background-color: #1e1e1e;
-    border: 1px solid #3d3d3d;
-    border-radius: 0px;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 4px;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
-    font-family: inherit;
-  `;
   searchWrapper.appendChild(recommendationsBox);
 
   sidebarControlsGroup.appendChild(searchWrapper);
@@ -518,23 +469,12 @@ document.addEventListener("DOMContentLoaded", () => {
       recommendationsBox.style.display = "block";
       matches.forEach(({ entity: match, count }) => {
         const item = document.createElement("div");
-        item.style.cssText = `
-          padding: 6px 10px;
-          font-size: 0.8rem;
-          color: #d0d5dd;
-          cursor: pointer;
-          border-bottom: 1px solid #282828;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        `;
+        item.className = "recommendation-item";
         const displayName = getEntityDisplayName(match.proto);
         const countLabel = count > 1 ? ` (${count} on map)` : "";
         item.textContent = displayName !== match.proto
           ? `${displayName} — ${match.proto}${countLabel}`
           : `${match.proto}${countLabel}`;
-        item.onmouseover = () => item.style.background = "#2d2d2d";
-        item.onmouseout = () => item.style.background = "transparent";
 
         item.addEventListener("click", () => {
           searchInput.value = displayName;
