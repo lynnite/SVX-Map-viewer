@@ -18,11 +18,19 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("light-mode");
   }
 
+  function updateLogo() {
+    const svxSummaryEl = document.querySelector(".sidebar-category summary.svx-category-summary");
+    if (!svxSummaryEl) return;
+    const isLight = document.body.classList.contains("light-mode");
+    svxSummaryEl.style.setProperty("--peek-img", isLight ? 'url("svxdark.png")' : 'url("svx.png")');
+  }
+
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener("click", () => {
       document.body.classList.toggle("light-mode");
       const isLight = document.body.classList.contains("light-mode");
       localStorage.setItem("theme", isLight ? "light" : "dark");
+      updateLogo();
     });
   }
 
@@ -76,8 +84,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const svxDetails = document.createElement("details");
     svxDetails.className = "sidebar-category";
     const svxSummary = document.createElement("summary");
+    svxSummary.className = "svx-category-summary";
     svxSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
-    svxSummary.style.setProperty("--peek-img", 'url("svx.png")');
+    svxSummary.style.setProperty("--peek-img", document.body.classList.contains("light-mode") ? 'url("svxdark.png")' : 'url("svx.png")');
     svxDetails.appendChild(svxSummary);
     const svxUl = document.createElement("ul");
     svxDetails.appendChild(svxUl);
@@ -111,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupMapCategories();
+  updateLogo();
 
   //  map preview
   initialListItems.forEach(li => {
