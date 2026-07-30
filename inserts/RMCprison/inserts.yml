@@ -11,12 +11,12 @@
   direction: north
 
 - id: RMCMapInsertFiorinaRocinanteCLF
-  chance: 1
+  chance: 0.1
   direction: north
 
 - id: RMCMapInsertFiorinaRiotInProgress
-  chance: 1
-  direction: north
+  chance: 0.15
+  offset: [0, -5]
 
 - id: RMCMapInsertFiorinaSurvSpawnTogether
   direction: north
