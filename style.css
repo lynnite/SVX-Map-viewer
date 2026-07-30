@@ -92,10 +92,10 @@ body.light-mode {
   --coord-label-color: #6e7781;
   --coord-value-color: #1f2328;
 
-  --viewport-bg: #e5e8ec;
-  --tile-hover-border: rgba(0, 0, 0, 0.85);
-  --tile-hover-bg: rgba(0, 0, 0, 0.15);
-  --tile-hover-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+  --viewport-bg: #0d0d0d;
+  --tile-hover-border: rgba(255, 255, 255, 0.9);
+  --tile-hover-bg: rgba(255, 255, 255, 0.2);
+  --tile-hover-shadow: inset 0 0 4px rgba(255, 255, 255, 0.4);
 
   --floating-bg: rgba(255, 255, 255, 0.85);
   --floating-border: #d0d7de;
