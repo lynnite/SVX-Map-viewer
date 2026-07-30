@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     position: relative;
     display: inline-block;
   `;
-  
+
   elem.parentNode.insertBefore(mapContainer, elem);
   mapContainer.appendChild(elem);
   elem.style.display = "block";
@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     svxDetails.className = "sidebar-category";
     const svxSummary = document.createElement("summary");
     svxSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
+    svxSummary.style.setProperty("--peek-img", 'url("svx.png")');
     svxDetails.appendChild(svxSummary);
     const svxUl = document.createElement("ul");
     svxDetails.appendChild(svxUl);
@@ -68,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rmcDetails.className = "sidebar-category";
     const rmcSummary = document.createElement("summary");
     rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC14 maps</span>`;
+    rmcSummary.style.setProperty("--peek-img", 'url("rmc.png")');
     rmcDetails.appendChild(rmcSummary);
     const rmcUl = document.createElement("ul");
     rmcDetails.appendChild(rmcUl);
@@ -92,6 +94,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupMapCategories();
+
+  //  map preview
+  initialListItems.forEach(li => {
+    const src = li.getAttribute("data-src");
+    if (!src) return;
+
+    const slashIndex = src.lastIndexOf("/");
+    const thumbSrc = slashIndex === -1
+      ? `thumbs/${src}`
+      : `${src.slice(0, slashIndex)}/thumbs/${src.slice(slashIndex + 1)}`;
+
+    li.style.setProperty("--peek-img", `url("${thumbSrc}")`);
+
+    const label = document.createElement("span");
+    label.className = "map-name-text";
+    label.textContent = li.textContent;
+    li.textContent = "";
+    li.appendChild(label);
+  });
 
   // --- SIDEBAR SEARCH & RECOMMENDATIONS INTEGRATION ---
   const sidebarControlsGroup = document.createElement("div");
@@ -125,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const searchInput = document.createElement("input");
   searchInput.type = "text";
-  searchInput.placeholder = "Search entity or UID...";
+  searchInput.placeholder = "Search name, entity ID, or UID...";
   searchInput.style.cssText = `
     flex: 1;
     min-width: 0;
@@ -134,9 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
     box-sizing: border-box;
     background: #252525;
     border: 1px solid #333333;
-    border-radius: 6px;
+    border-radius: 0px;
     color: #f5f5f5;
     outline: none;
+    font-family: inherit;
   `;
 
   const searchNav = document.createElement("div");
@@ -164,13 +186,14 @@ document.addEventListener("DOMContentLoaded", () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
   `;
 
   const searchCountDisplay = document.createElement("span");
   searchCountDisplay.style.cssText = `
     font-size: 0.75rem;
     color: #a0a0a0;
-    font-family: ui-monospace, monospace;
+    font-family: inherit;
     white-space: nowrap;
     user-select: none;
   `;
@@ -190,6 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
   `;
 
   searchNav.appendChild(prevMatchBtn);
@@ -213,11 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
     z-index: 10;
     background-color: #1e1e1e;
     border: 1px solid #3d3d3d;
-    border-radius: 6px 6px 0 0;
+    border-radius: 0px;
     max-height: 200px;
     overflow-y: auto;
     margin-bottom: 4px;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    font-family: inherit;
   `;
   searchWrapper.appendChild(recommendationsBox);
 
@@ -257,7 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const panzoom = Panzoom(mapContainer, {
     maxScale: 50,
     minScale: 0.05,
-    canvas: true
+    canvas: true,
+    step: 0.15
   });
 
   mapContainer.addEventListener("panzoomstart", () => {
@@ -380,6 +406,14 @@ document.addEventListener("DOMContentLoaded", () => {
     panzoom.pan(targetX, targetY, { animate: true });
   }
 
+  function entityMatchesQuery(e, query) {
+    if (!e.proto) return false;
+    const tokens = query.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return false;
+    const haystack = (e.proto + " " + getEntityDisplayName(e.proto)).toLowerCase();
+    return tokens.every(t => haystack.includes(t));
+  }
+
   function executeSearch(queryOverride) {
     const query = (queryOverride !== undefined ? queryOverride : searchInput.value).trim().toLowerCase();
     recommendationsBox.style.display = "none";
@@ -391,14 +425,29 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    currentSearchResults = visibleEntities.filter(e => 
-      (e.proto && e.proto.toLowerCase().includes(query)) ||
-      (e.uid && String(e.uid) === query)
-    );
+    const uidMatches = visibleEntities.filter(e => e.uid && String(e.uid) === query);
+
+    let resultsPool;
+    if (uidMatches.length > 0) {
+      resultsPool = uidMatches;
+    } else {
+      const broadMatches = visibleEntities.filter(e => entityMatchesQuery(e, query));
+
+      const bestProto = pickBestMatchingProto(broadMatches, query);
+      resultsPool = bestProto
+        ? broadMatches.filter(e => e.proto === bestProto)
+        : broadMatches;
+    }
+
+    currentSearchResults = resultsPool;
 
     if (currentSearchResults.length > 0) {
       currentSearchIndex = 0;
       goToMatch(0);
+      const resolvedProto = currentSearchResults[0].proto;
+      if (resolvedProto) {
+        searchInput.value = getEntityDisplayName(resolvedProto);
+      }
     } else {
       currentSearchResults = [];
       currentSearchIndex = 0;
@@ -406,6 +455,42 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`No entity matching "${query}" found on this map.`);
       searchHighlight.style.display = "none";
     }
+  }
+
+  function pickBestMatchingProto(matches, query) {
+    if (matches.length === 0) return null;
+
+    const seen = new Map();
+    for (const e of matches) {
+      if (e.proto && !seen.has(e.proto)) {
+        seen.set(e.proto, getEntityDisplayName(e.proto).toLowerCase());
+      }
+    }
+    if (seen.size <= 1) return matches[0].proto || null;
+
+    const tokens = query.split(/\s+/).filter(Boolean);
+
+    let best = null;
+    let bestScore = Infinity;
+    for (const [proto, name] of seen) {
+      const protoLower = proto.toLowerCase();
+      const nameWords = name.split(/\W+/).filter(Boolean);
+      let score;
+      if (name === query) score = 0;
+      else if (protoLower === query) score = 1;
+      else if (name.startsWith(query)) score = 2;
+      else if (protoLower.startsWith(query)) score = 3;
+      else if (tokens.every(t => nameWords.includes(t))) score = 4;
+      else if (name.includes(query)) score = 5;
+      else if (protoLower.includes(query)) score = 6;
+      else score = 7;
+
+      if (score < bestScore || (score === bestScore && name.length < seen.get(best).length)) {
+        bestScore = score;
+        best = proto;
+      }
+    }
+    return best;
   }
 
   searchInput.addEventListener("input", () => {
@@ -417,14 +502,21 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const matches = visibleEntities.filter(e => 
-      (e.proto && e.proto.toLowerCase().includes(query)) ||
-      (e.uid && String(e.uid) === query)
-    ).slice(0, 10);
+    const rawMatches = visibleEntities.filter(e =>
+      entityMatchesQuery(e, query) || (e.uid && String(e.uid) === query)
+    );
+
+    const grouped = new Map();
+    for (const e of rawMatches) {
+      if (!e.proto) continue;
+      if (!grouped.has(e.proto)) grouped.set(e.proto, { entity: e, count: 0 });
+      grouped.get(e.proto).count++;
+    }
+    const matches = Array.from(grouped.values()).slice(0, 10);
 
     if (matches.length > 0) {
       recommendationsBox.style.display = "block";
-      matches.forEach(match => {
+      matches.forEach(({ entity: match, count }) => {
         const item = document.createElement("div");
         item.style.cssText = `
           padding: 6px 10px;
@@ -436,25 +528,22 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow: hidden;
           text-overflow: ellipsis;
         `;
-        item.textContent = `${match.proto} [${match.uid}]`;
+        const displayName = getEntityDisplayName(match.proto);
+        const countLabel = count > 1 ? ` (${count} on map)` : "";
+        item.textContent = displayName !== match.proto
+          ? `${displayName} — ${match.proto}${countLabel}`
+          : `${match.proto}${countLabel}`;
         item.onmouseover = () => item.style.background = "#2d2d2d";
         item.onmouseout = () => item.style.background = "transparent";
 
         item.addEventListener("click", () => {
-          searchInput.value = match.proto;
+          searchInput.value = displayName;
           recommendationsBox.style.display = "none";
 
-          currentSearchResults = visibleEntities.filter(e => 
-            (e.proto && e.proto.toLowerCase().includes(match.proto.toLowerCase())) ||
-            (e.uid && String(e.uid) === String(match.uid))
-          );
+          currentSearchResults = visibleEntities.filter(e => e.proto === match.proto);
 
           const foundIndex = currentSearchResults.findIndex(e => e === match || (e.uid && e.uid === match.uid));
-          if (foundIndex !== -1) {
-            goToMatch(foundIndex);
-          } else {
-            goToMatch(0);
-          }
+          goToMatch(foundIndex !== -1 ? foundIndex : 0);
         });
 
         recommendationsBox.appendChild(item);
@@ -661,8 +750,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentUid = parentMatch ? parentMatch[1] : null;
 
         let localPos = null;
-        const posMatch = entityBlock.match(/pos:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i) || 
-                         entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+        const posMatch = entityBlock.match(/pos:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i) ||
+          entityBlock.match(/position:\s*["']?(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
 
         if (posMatch) {
           localPos = { x: parseFloat(posMatch[1]), y: parseFloat(posMatch[2]) };
@@ -933,7 +1022,7 @@ document.addEventListener("DOMContentLoaded", () => {
         details.className = "insert-dropdown";
 
         const summary = document.createElement("summary");
-        
+
         const arrow = document.createElement("span");
         arrow.className = "dropdown-arrow";
         arrow.textContent = "▶";
@@ -1042,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resetToFit(false);
     allParsedEntities = [];
     visibleEntities = [];
-    
+
     clearOverlayImages();
     insertDataMap.clear();
     searchInput.value = "";
@@ -1062,7 +1151,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const rawText = await response.text();
       const mapFolderName = getMapFolderName(mapUrl);
-      
+
       await loadInsertMetadata(mapFolderName);
       allParsedEntities = await parseEntitiesProtoGrouped(rawText, mapFolderName);
 
@@ -1143,14 +1232,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderEntityMenuItem(item, isInsert) {
     const li = document.createElement("li");
-    li.textContent = `${item.proto} [${item.uid}]`;
+    const itemName = getEntityDisplayName(item.proto);
+    li.textContent = itemName !== item.proto
+      ? `${itemName} (${item.proto}) [${item.uid}]`
+      : `${item.proto} [${item.uid}]`;
     if (isInsert) li.style.color = "#4db8ff";
     entityList.appendChild(li);
 
     if (item.contents && item.contents.length > 0) {
       item.contents.forEach(child => {
         const childLi = document.createElement("li");
-        childLi.textContent = `↳ In: ${child.proto} [${child.uid}]`;
+        const childName = getEntityDisplayName(child.proto);
+        childLi.textContent = childName !== child.proto
+          ? `↳ In: ${childName} (${child.proto}) [${child.uid}]`
+          : `↳ In: ${child.proto} [${child.uid}]`;
         childLi.style.paddingLeft = "16px";
         childLi.style.opacity = "0.85";
         childLi.style.fontSize = "0.85em";
