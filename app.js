@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     svxDetails.className = "sidebar-category";
     const svxSummary = document.createElement("summary");
     svxSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
+    svxSummary.style.setProperty("--peek-img", 'url("svx.png")');
     svxDetails.appendChild(svxSummary);
     const svxUl = document.createElement("ul");
     svxDetails.appendChild(svxUl);
@@ -68,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rmcDetails.className = "sidebar-category";
     const rmcSummary = document.createElement("summary");
     rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC14 maps</span>`;
+    rmcSummary.style.setProperty("--peek-img", 'url("rmc.png")');
     rmcDetails.appendChild(rmcSummary);
     const rmcUl = document.createElement("ul");
     rmcDetails.appendChild(rmcUl);
@@ -92,6 +94,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupMapCategories();
+
+  //  map preview
+  initialListItems.forEach(li => {
+    const src = li.getAttribute("data-src");
+    if (!src) return;
+
+    const slashIndex = src.lastIndexOf("/");
+    const thumbSrc = slashIndex === -1
+      ? `thumbs/${src}`
+      : `${src.slice(0, slashIndex)}/thumbs/${src.slice(slashIndex + 1)}`;
+
+    li.style.setProperty("--peek-img", `url("${thumbSrc}")`);
+
+    const label = document.createElement("span");
+    label.className = "map-name-text";
+    label.textContent = li.textContent;
+    li.textContent = "";
+    li.appendChild(label);
+  });
 
   // --- SIDEBAR SEARCH & RECOMMENDATIONS INTEGRATION ---
   const sidebarControlsGroup = document.createElement("div");
@@ -134,9 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
     box-sizing: border-box;
     background: #252525;
     border: 1px solid #333333;
-    border-radius: 6px;
+    border-radius: 0px;
     color: #f5f5f5;
     outline: none;
+    font-family: inherit;
   `;
 
   const searchNav = document.createElement("div");
@@ -164,13 +186,14 @@ document.addEventListener("DOMContentLoaded", () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
   `;
 
   const searchCountDisplay = document.createElement("span");
   searchCountDisplay.style.cssText = `
     font-size: 0.75rem;
     color: #a0a0a0;
-    font-family: ui-monospace, monospace;
+    font-family: inherit;
     white-space: nowrap;
     user-select: none;
   `;
@@ -190,6 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
   `;
 
   searchNav.appendChild(prevMatchBtn);
@@ -213,11 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
     z-index: 10;
     background-color: #1e1e1e;
     border: 1px solid #3d3d3d;
-    border-radius: 6px 6px 0 0;
+    border-radius: 0px;
     max-height: 200px;
     overflow-y: auto;
     margin-bottom: 4px;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    font-family: inherit;
   `;
   searchWrapper.appendChild(recommendationsBox);
 
