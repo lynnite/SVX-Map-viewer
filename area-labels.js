@@ -100,10 +100,12 @@
 
   function flagsSummary(flags) {
     if (!flags) return "No protection data for this room.";
+    const tick = "<span style='color:#2ecc71'>✓</span>";
+    const cross = "<span style='color:#e74c3c'>✕</span>";
     return (
-      `CAS: ${flags.CAS ? "yes" : "no"} | Mortar Fire: ${flags.mortarFire ? "yes" : "no"} | OB: ${flags.OB ? "yes" : "no"}\n` +
-      `Medevac: ${flags.medevac ? "yes" : "no"} | Mortar Placement: ${flags.mortarPlacement ? "yes" : "no"}\n` +
-      `Fulton: ${flags.fulton ? "yes" : "no"} | Lasing: ${flags.lasing ? "yes" : "no"} | Paradrop: ${flags.paradropping ? "yes" : "no"} | Supply Drop: ${flags.supplyDrop ? "yes" : "no"}`
+      `CAS: ${flags.CAS ? tick : cross} | Mortar Fire: ${flags.mortarFire ? tick : cross} | OB: ${flags.OB ? tick : cross}\n` +
+      `Medevac: ${flags.medevac ? tick : cross} | Mortar Placement: ${flags.mortarPlacement ? tick : cross}\n` +
+      `Fulton: ${flags.fulton ? tick : cross} | Lasing: ${flags.lasing ? tick : cross} | Paradrop: ${flags.paradropping ? tick : cross} | Supply Drop: ${flags.supplyDrop ? tick : cross}`
     );
   }
 
@@ -486,7 +488,7 @@
     }
 
     if (key !== lastHoverKey) {
-      tip.textContent = `${info.name}\n${flagsSummary(info.flags)}`;
+      tip.innerHTML = `${info.name.replace(/\n/g, "<br>")}<br>${flagsSummary(info.flags)}`;
       lastHoverKey = key;
     }
     tip.style.left = `${event.clientX + 16}px`;
