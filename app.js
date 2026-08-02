@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const svxDetails = document.createElement("details");
     svxDetails.className = "sidebar-category";
     svxCategorySummary = document.createElement("summary");
-    svxCategorySummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
+    svxCategorySummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX</span>`;
     svxDetails.appendChild(svxCategorySummary);
     updateSvxCategoryLogo();
     const svxUl = document.createElement("ul");
@@ -218,7 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const rmcDetails = document.createElement("details");
     rmcDetails.className = "sidebar-category";
     const rmcSummary = document.createElement("summary");
-    rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC14 maps</span>`;
+    rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC-14</span>`;
     rmcSummary.style.setProperty("--peek-img", 'url("art/rmc.png")');
     rmcDetails.appendChild(rmcSummary);
     const rmcUl = document.createElement("ul");
