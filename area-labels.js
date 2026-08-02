@@ -50,6 +50,10 @@
   let toggleBtn = null;
   let hoverInfoEnabled = localStorage.getItem("hoverInfoEnabled") === "true";
   let hookFiredAtLeastOnce = false;
+  let isMapDragging = false;
+  let dragPointerActive = false;
+  let dragPointerStart = null;
+  const DRAG_THRESHOLD_PX = 8;
 
   const STRIP_WORDS = new Set(["glass", "damage"]);
 
@@ -96,10 +100,12 @@
 
   function flagsSummary(flags) {
     if (!flags) return "No protection data for this room.";
+    const tick = "<span style='color:#2ecc71'>✓</span>";
+    const cross = "<span style='color:#e74c3c'>✕</span>";
     return (
-      `CAS: ${flags.CAS ? "yes" : "no"} | Mortar Fire: ${flags.mortarFire ? "yes" : "no"} | OB: ${flags.OB ? "yes" : "no"}\n` +
-      `Medevac: ${flags.medevac ? "yes" : "no"} | Mortar Placement: ${flags.mortarPlacement ? "yes" : "no"}\n` +
-      `Fulton: ${flags.fulton ? "yes" : "no"} | Lasing: ${flags.lasing ? "yes" : "no"} | Paradrop: ${flags.paradropping ? "yes" : "no"} | Supply Drop: ${flags.supplyDrop ? "yes" : "no"}`
+      `CAS: ${flags.CAS ? tick : cross} | Mortar Fire: ${flags.mortarFire ? tick : cross} | OB: ${flags.OB ? tick : cross}\n` +
+      `Medevac: ${flags.medevac ? tick : cross} | Mortar Placement: ${flags.mortarPlacement ? tick : cross}\n` +
+      `Fulton: ${flags.fulton ? tick : cross} | Lasing: ${flags.lasing ? tick : cross} | Paradrop: ${flags.paradropping ? tick : cross} | Supply Drop: ${flags.supplyDrop ? tick : cross}`
     );
   }
 
@@ -262,6 +268,54 @@
     if (tip) tip.style.display = "none";
   }
 
+  function setMapDraggingState(active) {
+    if (isMapDragging === active) return;
+    isMapDragging = active;
+    if (active) {
+      hideHoverTooltip();
+      lastHoverKey = null;
+    }
+  }
+
+  function attachMapDragListeners() {
+    const isMapInteractionTarget = (event) => {
+      const target = event.target;
+      return !!(target && (target.closest?.("#map-container") || target.closest?.("#panzoom-container") || target.closest?.("#map-image")));
+    };
+
+    window.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || !isMapInteractionTarget(event)) return;
+      dragPointerActive = true;
+      dragPointerStart = { x: event.clientX, y: event.clientY };
+      setMapDraggingState(true);
+    }, true);
+
+    window.addEventListener("pointermove", (event) => {
+      if (!dragPointerActive || !dragPointerStart) return;
+      const distance = Math.hypot(event.clientX - dragPointerStart.x, event.clientY - dragPointerStart.y);
+      if (distance >= DRAG_THRESHOLD_PX) {
+        setMapDraggingState(true);
+      }
+    }, true);
+
+    const endDragging = () => {
+      if (!dragPointerActive) return;
+      dragPointerActive = false;
+      dragPointerStart = null;
+      setMapDraggingState(false);
+    };
+
+    window.addEventListener("pointerup", endDragging, true);
+    window.addEventListener("pointercancel", endDragging, true);
+    window.addEventListener("blur", endDragging, true);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", attachMapDragListeners);
+  } else {
+    attachMapDragListeners();
+  }
+
   // ---------------------------------------------------------------------
   // Room-name reveal (click a big label)
   // ---------------------------------------------------------------------
@@ -395,7 +449,7 @@
   let lastHoverKey = null;
 
   function handleHoverMove(event) {
-    if (!hoverInfoEnabled || !currentMapHasData) {
+    if (!hoverInfoEnabled || !currentMapHasData || isMapDragging) {
       hideHoverTooltip();
       lastHoverKey = null;
       return;
@@ -434,7 +488,7 @@
     }
 
     if (key !== lastHoverKey) {
-      tip.textContent = `${info.name}\n${flagsSummary(info.flags)}`;
+      tip.innerHTML = `${info.name.replace(/\n/g, "<br>")}<br>${flagsSummary(info.flags)}`;
       lastHoverKey = key;
     }
     tip.style.left = `${event.clientX + 16}px`;

@@ -400,6 +400,11 @@ body.light-mode .theme-toggle-btn .moon-icon {
   z-index: 20;
 }
 
+.search-panel a {
+  display: inline-block;
+  pointer-events: auto;
+}
+
 .mascot-gif {
   position: absolute;
   bottom: 100%;
@@ -408,7 +413,7 @@ body.light-mode .theme-toggle-btn .moon-icon {
   width: auto;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  pointer-events: none;
+  pointer-events: auto;
   user-select: none;
   -webkit-user-drag: none;
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
