@@ -416,11 +416,11 @@ body.light-mode .theme-toggle-btn .moon-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
+  cursor: default;
   transition: background-color 0.25s ease;
 }
 
-.viewport:active {
+.viewport.is-panning {
   cursor: grabbing;
 }
 
@@ -511,6 +511,34 @@ body.light-mode .theme-toggle-btn .moon-icon {
 
 .map-label {
   user-select: none;
+}
+
+.big-map-label {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.big-map-label:hover {
+  filter: brightness(1.25);
+}
+
+.big-map-label.expanded {
+  filter: brightness(1.35);
+}
+
+.area-sub-label {
+  font-family: "JetBrains Mono", "Arial", sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #f4ead0;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px 2px 0 #000, 2px 2px 0 #000;
+  text-align: center;
+  line-height: 1;
+  user-select: none;
+  transition: opacity 0.15s ease;
 }
 
 #context-menu {
