@@ -129,7 +129,6 @@ body.light-mode {
 }
 
 body {
-  display: flex;
   height: 100vh;
   width: 100vw;
   font-family: 'JetBrains Mono', monospace;
@@ -139,23 +138,32 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-.sidebar {
+.map-panel {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
   width: 280px;
+  max-width: calc(100vw - 3rem);
+  max-height: calc(100vh - 3rem);
   background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--sidebar-border);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 0px;
+  z-index: 20;
+  box-shadow: var(--sidebar-shadow);
   display: flex;
   flex-direction: column;
-  z-index: 10;
-  box-shadow: var(--sidebar-shadow);
+  overflow: hidden;
   transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .sidebar-header {
-  padding: 1.5rem 1.25rem 1rem;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
   border-bottom: 1px solid var(--sidebar-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.6rem;
   transition: border-color 0.25s ease;
 }
 
@@ -383,10 +391,35 @@ body.light-mode .theme-toggle-btn .moon-icon {
   box-sizing: border-box;
 }
 
+.search-panel {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  width: 280px;
+  max-width: calc(100vw - 3rem);
+  z-index: 20;
+}
+
+.mascot-gif {
+  position: absolute;
+  bottom: 100%;
+  left: 0.75rem;
+  height: 120px;
+  width: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+}
+
 .sidebar-footer {
+  position: relative;
   padding: 1rem 1.25rem;
-  border-top: 1px solid var(--sidebar-footer-border);
+  border: 1px solid var(--sidebar-footer-border);
   background-color: var(--sidebar-footer-bg);
+  box-shadow: var(--sidebar-shadow);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -409,8 +442,8 @@ body.light-mode .theme-toggle-btn .moon-icon {
 }
 
 .viewport {
-  flex: 1;
-  position: relative;
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   background-color: var(--viewport-bg);
   display: flex;
