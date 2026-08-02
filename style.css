@@ -431,6 +431,96 @@ body.light-mode .theme-toggle-btn .moon-icon {
   transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
+.offset-calculator {
+  margin-top: 0.75rem;
+  border: 1px solid var(--sidebar-footer-border);
+  background-color: var(--sidebar-footer-bg);
+  box-shadow: var(--sidebar-shadow);
+}
+
+.offset-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.offset-summary::-webkit-details-marker {
+  display: none;
+}
+
+.offset-panel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0 0.85rem 0.8rem;
+}
+
+.offset-toggle-btn {
+  border: 1px solid var(--btn-border);
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.offset-toggle-btn.active {
+  background-color: var(--btn-hover-bg);
+  border-color: var(--btn-hover-border);
+  color: var(--btn-hover-text);
+}
+
+.offset-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--coord-label-color);
+}
+
+.offset-field input {
+  width: 72px;
+  border: 1px solid var(--btn-border);
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+  padding: 0.3rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.offset-field input::-webkit-outer-spin-button,
+.offset-field input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.offset-field input:focus {
+  outline: 1px solid var(--btn-hover-border);
+  border-color: var(--btn-hover-border);
+}
+
+.offset-result {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--coord-value-color);
+  min-height: 1.1rem;
+}
+
+.offset-message {
+  font-size: 0.7rem;
+  color: var(--coord-label-color);
+  min-height: 0.9rem;
+}
+
 .coord-label {
   font-size: 0.75rem;
   text-transform: uppercase;
