@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SvX Map Viewer</title>
-  <link rel="icon" type="image/png" href="svx.png">
+  <link rel="icon" type="image/png" href="art/svx.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 </head>
 <body>
 
-  <aside class="sidebar">
+  <div id="map-panel" class="map-panel">
     <div class="sidebar-header">
       <h2>Maps</h2>
       <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
@@ -34,7 +34,7 @@
         </svg>
       </button>
     </div>
-    
+
     <ul id="image-list">
       <li data-src="images/maints-0.webp" data-map="maps/maints-0.yml" class="active" data-category="svx">Cargo Carriage</li>
       <li data-src="images/kutjevo-0.webp" data-map="maps/kutjevo-0.yml" data-category="svx">Kutjevo Refinery</li>
@@ -50,12 +50,16 @@
       <li data-src="images/RMCshiva.webp" data-map="maps/RMCshiva.yml" data-category="rmc">Shivas Snowball</li>
       <li data-src="images/RMCsolaris.webp" data-map="maps/RMCsolaris.yml" data-category="rmc">Solaris Ridge</li>
     </ul>
+  </div>
+
+  <div id="search-panel" class="search-panel">
+    <img id="mascot-gif" src="art/discordgif.gif" alt="" class="mascot-gif">
 
     <div class="sidebar-footer">
       <span class="coord-label">Tile Coordinates:</span>
       <div id="tile-coords">X: --, Y: --</div>
     </div>
-  </aside>
+  </div>
 
   <main class="viewport">
     <div id="panzoom-container">

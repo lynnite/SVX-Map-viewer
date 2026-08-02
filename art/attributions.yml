@@ -1,0 +1,19 @@
+- files: ["rmc.png"]
+  license: "CC-BY-3.0"
+  copyright: "Taken from RMC-14"
+  source: "https://github.com/RMC-14/RMC-14"
+
+- files: ["svx.png"]
+  license: "CC-BY-SA-3.0"
+  copyright: "Created by lynnite on github"
+  source: "https://github.com/lynnite"
+
+- files: ["svxdark.png"]
+  license: "CC-BY-SA-3.0"
+  copyright: "Created by lynnite on github modified by wheelwrightt"
+  source: "https://github.com/lynnite"
+
+- files: ["discordgif.gif"]
+  license: "CC-BY-SA-3.0"
+  copyright: "Created by lynnite on github"
+  source: "https://github.com/lynnite"

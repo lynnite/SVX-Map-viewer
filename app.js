@@ -9,6 +9,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuTitle = document.getElementById("menu-tile-title");
   const sidebarFooter = document.querySelector(".sidebar-footer");
   const themeToggleBtn = document.getElementById("theme-toggle");
+  let svxCategorySummary = null;
+
+  function updateSvxCategoryLogo() {
+    const isLight = document.body.classList.contains("light-mode");
+    if (svxCategorySummary) {
+      svxCategorySummary.style.setProperty(
+        "--peek-img",
+        isLight ? 'url("art/svxdark.png")' : 'url("art/svx.png")'
+      );
+    }
+  }
 
   // light and dark mode
   const savedTheme = localStorage.getItem("theme");
@@ -23,6 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.toggle("light-mode");
       const isLight = document.body.classList.contains("light-mode");
       localStorage.setItem("theme", isLight ? "light" : "dark");
+      updateSvxCategoryLogo();
     });
   }
 
@@ -171,10 +183,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const svxDetails = document.createElement("details");
     svxDetails.className = "sidebar-category";
-    const svxSummary = document.createElement("summary");
-    svxSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
-    svxSummary.style.setProperty("--peek-img", 'url("svx.png")');
-    svxDetails.appendChild(svxSummary);
+    svxCategorySummary = document.createElement("summary");
+    svxCategorySummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">SvX maps</span>`;
+    svxDetails.appendChild(svxCategorySummary);
+    updateSvxCategoryLogo();
     const svxUl = document.createElement("ul");
     svxDetails.appendChild(svxUl);
 
@@ -182,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rmcDetails.className = "sidebar-category";
     const rmcSummary = document.createElement("summary");
     rmcSummary.innerHTML = `<span class="category-arrow">▶</span><span class="category-title">RMC14 maps</span>`;
-    rmcSummary.style.setProperty("--peek-img", 'url("rmc.png")');
+    rmcSummary.style.setProperty("--peek-img", 'url("art/rmc.png")');
     rmcDetails.appendChild(rmcSummary);
     const rmcUl = document.createElement("ul");
     rmcDetails.appendChild(rmcUl);
