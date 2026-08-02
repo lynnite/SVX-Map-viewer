@@ -9,7 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuTitle = document.getElementById("menu-tile-title");
   const sidebarFooter = document.querySelector(".sidebar-footer");
   const themeToggleBtn = document.getElementById("theme-toggle");
+  const offsetMapXInput = document.getElementById("offset-map-x");
+  const offsetMapYInput = document.getElementById("offset-map-y");
+  const offsetRmcXInput = document.getElementById("offset-rmc-x");
+  const offsetRmcYInput = document.getElementById("offset-rmc-y");
+  const offsetCaptureToggleBtn = document.getElementById("offset-capture-toggle");
+  const offsetResult = document.getElementById("offset-result");
+  const offsetMessage = document.getElementById("offset-message");
   let svxCategorySummary = null;
+  let offsetCaptureEnabled = false;
 
   function updateSvxCategoryLogo() {
     const isLight = document.body.classList.contains("light-mode");
@@ -108,6 +116,86 @@ document.addEventListener("DOMContentLoaded", () => {
     const g = parseInt(h.substring(2, 4), 16) || 0;
     const b = parseInt(h.substring(4, 6), 16) || 0;
     return `rgba(${r}, ${g}, ${b}, ${opacity !== undefined ? opacity : 0.5})`;
+  }
+
+  function setRoundOffset(mapX, mapY, rmcX, rmcY) {
+    if ((!mapX && mapX !== 0) || (!mapY && mapY !== 0)) {
+      return {
+        error: 'You need to supply Map Viewer coordinates of tile you lasered: \nset_round_offset(0, 1) \nOffset was removed.'
+      };
+    }
+
+    if ((!rmcX && rmcX !== 0) || (!rmcY && rmcY !== 0)) {
+      return {
+        error: 'You need to supply RMC-14 coordinates of tile you lasered: \nset_round_offset(0, 1, 2, 3) \nOffset was removed.'
+      };
+    }
+
+    const parsedMapX = Number(mapX);
+    const parsedMapY = Number(mapY);
+    const parsedRmcX = Number(rmcX);
+    const parsedRmcY = Number(rmcY);
+
+    if ([parsedMapX, parsedMapY, parsedRmcX, parsedRmcY].some(value => !Number.isFinite(value))) {
+      return {
+        error: 'Please enter valid numeric coordinates.'
+      };
+    }
+
+    return {
+      offset: {
+        x: parsedMapX - parsedRmcX,
+        y: parsedMapY - parsedRmcY
+      }
+    };
+  }
+
+  function updateOffsetCalculatorUI(result) {
+    if (!offsetResult || !offsetMessage) return;
+
+    if (result.error) {
+      offsetResult.textContent = 'Offset: X: 0, Y: 0';
+      offsetMessage.textContent = result.error;
+      return;
+    }
+
+    const offset = result.offset || { x: 0, y: 0 };
+    offsetResult.textContent = `Offset: X: ${offset.x}, Y: ${offset.y}`;
+    offsetMessage.textContent = 'Ready to use.';
+  }
+
+  function calculateOffsetFromInputs() {
+    const mapX = offsetMapXInput ? offsetMapXInput.value : null;
+    const mapY = offsetMapYInput ? offsetMapYInput.value : null;
+    const rmcX = offsetRmcXInput ? offsetRmcXInput.value : null;
+    const rmcY = offsetRmcYInput ? offsetRmcYInput.value : null;
+
+    const hasAllValues = [mapX, mapY, rmcX, rmcY].every(value => value !== null && value !== "");
+    if (!hasAllValues) {
+      offsetResult.textContent = 'Offset: X: 0, Y: 0';
+      offsetMessage.textContent = 'Enter all four coordinates to calculate.';
+      return { error: 'Enter all four coordinates to calculate.' };
+    }
+
+    const result = setRoundOffset(mapX, mapY, rmcX, rmcY);
+    updateOffsetCalculatorUI(result);
+    return result;
+  }
+
+  function setOffsetCaptureEnabled(enabled) {
+    offsetCaptureEnabled = enabled;
+
+    if (offsetCaptureToggleBtn) {
+      offsetCaptureToggleBtn.classList.toggle('active', enabled);
+      offsetCaptureToggleBtn.setAttribute('aria-pressed', String(enabled));
+      offsetCaptureToggleBtn.textContent = enabled ? 'Capture tile coordinate' : 'Capture tile coordinate';
+    }
+
+    if (offsetMessage) {
+      offsetMessage.textContent = enabled
+        ? 'Right-click a tile to fetch Map X and Map Y.'
+        : 'Enter all four coordinates to calculate.';
+    }
   }
 
   function waitForImageLoad(img) {
@@ -1267,6 +1355,27 @@ document.addEventListener("DOMContentLoaded", () => {
         coordsDisplay.textContent = "X: --, Y: --";
       }
 
+      if (offsetMapXInput) {
+        offsetMapXInput.addEventListener("input", calculateOffsetFromInputs);
+      }
+      if (offsetMapYInput) {
+        offsetMapYInput.addEventListener("input", calculateOffsetFromInputs);
+      }
+      if (offsetRmcXInput) {
+        offsetRmcXInput.addEventListener("input", calculateOffsetFromInputs);
+      }
+      if (offsetRmcYInput) {
+        offsetRmcYInput.addEventListener("input", calculateOffsetFromInputs);
+      }
+
+      if (offsetCaptureToggleBtn) {
+        offsetCaptureToggleBtn.addEventListener("click", () => {
+          setOffsetCaptureEnabled(!offsetCaptureEnabled);
+        });
+      }
+
+      setOffsetCaptureEnabled(false);
+
       function updateTileHover(event) {
         if (!coordsDisplay) return;
 
@@ -1352,6 +1461,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       viewport.addEventListener("contextmenu", (event) => {
+        if (offsetCaptureEnabled) {
+          event.preventDefault();
+
+          if (currentTileX === null || currentTileY === null) {
+            updateOffsetCalculatorUI({ error: 'Hover over the map to capture a tile before right-clicking.' });
+            return;
+          }
+
+          if (offsetMapXInput) offsetMapXInput.value = currentTileX;
+          if (offsetMapYInput) offsetMapYInput.value = currentTileY;
+          calculateOffsetFromInputs();
+          return;
+        }
+
         event.preventDefault();
 
         if (currentTileX === null || currentTileY === null) {

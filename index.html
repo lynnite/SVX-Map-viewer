@@ -61,6 +61,33 @@
       <span class="coord-label">Tile Coordinates:</span>
       <div id="tile-coords">X: --, Y: --</div>
     </div>
+
+    <details class="offset-calculator" id="offset-calculator">
+      <summary class="offset-summary">
+        <span class="coord-label">Offset Calculator</span>
+      </summary>
+      <div class="offset-panel">
+        <button id="offset-capture-toggle" class="offset-toggle-btn" type="button" aria-pressed="false">Capture right-click: Off</button>
+        <label class="offset-field">
+          <span>Map X</span>
+          <input id="offset-map-x" type="number" inputmode="numeric" step="1" placeholder="0">
+        </label>
+        <label class="offset-field">
+          <span>Map Y</span>
+          <input id="offset-map-y" type="number" inputmode="numeric" step="1" placeholder="0">
+        </label>
+        <label class="offset-field">
+          <span>RMC X</span>
+          <input id="offset-rmc-x" type="number" inputmode="numeric" step="1" placeholder="0">
+        </label>
+        <label class="offset-field">
+          <span>RMC Y</span>
+          <input id="offset-rmc-y" type="number" inputmode="numeric" step="1" placeholder="0">
+        </label>
+        <div id="offset-result" class="offset-result">Offset: X: 0, Y: 0</div>
+        <div id="offset-message" class="offset-message" role="status"></div>
+      </div>
+    </details>
   </div>
 
   <main class="viewport">
