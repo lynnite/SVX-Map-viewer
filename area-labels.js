@@ -50,6 +50,10 @@
   let toggleBtn = null;
   let hoverInfoEnabled = localStorage.getItem("hoverInfoEnabled") === "true";
   let hookFiredAtLeastOnce = false;
+  let isMapDragging = false;
+  let dragPointerActive = false;
+  let dragPointerStart = null;
+  const DRAG_THRESHOLD_PX = 8;
 
   const STRIP_WORDS = new Set(["glass", "damage"]);
 
@@ -262,6 +266,54 @@
     if (tip) tip.style.display = "none";
   }
 
+  function setMapDraggingState(active) {
+    if (isMapDragging === active) return;
+    isMapDragging = active;
+    if (active) {
+      hideHoverTooltip();
+      lastHoverKey = null;
+    }
+  }
+
+  function attachMapDragListeners() {
+    const isMapInteractionTarget = (event) => {
+      const target = event.target;
+      return !!(target && (target.closest?.("#map-container") || target.closest?.("#panzoom-container") || target.closest?.("#map-image")));
+    };
+
+    window.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || !isMapInteractionTarget(event)) return;
+      dragPointerActive = true;
+      dragPointerStart = { x: event.clientX, y: event.clientY };
+      setMapDraggingState(true);
+    }, true);
+
+    window.addEventListener("pointermove", (event) => {
+      if (!dragPointerActive || !dragPointerStart) return;
+      const distance = Math.hypot(event.clientX - dragPointerStart.x, event.clientY - dragPointerStart.y);
+      if (distance >= DRAG_THRESHOLD_PX) {
+        setMapDraggingState(true);
+      }
+    }, true);
+
+    const endDragging = () => {
+      if (!dragPointerActive) return;
+      dragPointerActive = false;
+      dragPointerStart = null;
+      setMapDraggingState(false);
+    };
+
+    window.addEventListener("pointerup", endDragging, true);
+    window.addEventListener("pointercancel", endDragging, true);
+    window.addEventListener("blur", endDragging, true);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", attachMapDragListeners);
+  } else {
+    attachMapDragListeners();
+  }
+
   // ---------------------------------------------------------------------
   // Room-name reveal (click a big label)
   // ---------------------------------------------------------------------
@@ -395,7 +447,7 @@
   let lastHoverKey = null;
 
   function handleHoverMove(event) {
-    if (!hoverInfoEnabled || !currentMapHasData) {
+    if (!hoverInfoEnabled || !currentMapHasData || isMapDragging) {
       hideHoverTooltip();
       lastHoverKey = null;
       return;

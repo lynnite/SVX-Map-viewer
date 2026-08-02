@@ -110,6 +110,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return `rgba(${r}, ${g}, ${b}, ${opacity !== undefined ? opacity : 0.5})`;
   }
 
+  function waitForImageLoad(img) {
+    return new Promise((resolve) => {
+      if (!img) {
+        resolve();
+        return;
+      }
+
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+        return;
+      }
+
+      const done = () => {
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+        resolve();
+      };
+      const onLoad = () => done();
+      const onError = () => done();
+
+      img.addEventListener("load", onLoad, { once: true });
+      img.addEventListener("error", onError, { once: true });
+    });
+  }
+
   function renderMapLabels(imgSrc) {
     labelsLayer.innerHTML = "";
     if (!window.MAP_LABELS || !Array.isArray(window.MAP_LABELS)) return;
@@ -1181,7 +1206,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      async function loadMapData(mapUrl) {
+      let currentMapLoadId = 0;
+
+      async function loadMapData(mapUrl, imgUrl = null) {
+        const mapLoadId = ++currentMapLoadId;
         resetToFit(false);
         allParsedEntities = [];
         visibleEntities = [];
@@ -1199,7 +1227,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!mapUrl) return;
 
+        if (imgUrl) {
+          elem.src = imgUrl;
+        }
+
         try {
+          await waitForImageLoad(elem);
+          if (mapLoadId !== currentMapLoadId) return;
+
+          renderMapLabels(imgUrl);
+
           const response = await fetch(mapUrl);
           if (!response.ok) return;
 
@@ -1212,6 +1249,8 @@ document.addEventListener("DOMContentLoaded", () => {
           renderInsertControls();
           filterActiveEntities();
 
+          if (mapLoadId !== currentMapLoadId) return;
+
           if (typeof window.onAreaDataMapLoaded === "function") {
             window.onAreaDataMapLoaded(mapFolderName);
           }
@@ -1219,8 +1258,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      loadMapData(document.querySelector("#image-list li.active")?.getAttribute("data-map"));
-      renderMapLabels(document.querySelector("#image-list li.active")?.getAttribute("data-src"));
+      loadMapData(document.querySelector("#image-list li.active")?.getAttribute("data-map"), document.querySelector("#image-list li.active")?.getAttribute("data-src"));
 
       let currentTileX = null;
       let currentTileY = null;
@@ -1373,12 +1411,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const mapUrl = item.getAttribute("data-map");
           const imgUrl = item.getAttribute("data-src");
 
-          if (imgUrl) {
-            elem.src = imgUrl;
-          }
-
-          renderMapLabels(imgUrl);
-          loadMapData(mapUrl);
+          loadMapData(mapUrl, imgUrl);
         });
       }
 });
