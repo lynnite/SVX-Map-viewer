@@ -110,7 +110,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     labels.forEach(lbl => {
       const el = document.createElement("div");
-      el.className = "map-label";
+      el.className = "map-label big-map-label";
+      el.dataset.tileX = (lbl.tileX ?? "");
+      el.dataset.tileY = (lbl.tileY ?? "");
       el.textContent = lbl.uppercase ? String(lbl.text).toUpperCase() : lbl.text;
 
       const strokeWidth = lbl.strokeOn ? (lbl.strokeWidth || 0) : 0;
@@ -328,11 +330,14 @@ document.addEventListener("DOMContentLoaded", () => {
     maxScale: 50,
     minScale: 0.05,
     canvas: true,
-    step: 0.15
+    step: 0.15,
+    cursor: "default"
   });
 
   mapContainer.addEventListener("panzoomstart", () => {
     isPanning = true;
+    viewport.classList.add("is-panning");
+    mapContainer.style.cursor = "grabbing";
     hideHoverTile();
   });
 
@@ -342,6 +347,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     mapContainer.addEventListener("panzoomend", () => {
       isPanning = false;
+      viewport.classList.remove("is-panning");
+      mapContainer.style.cursor = "default";
     });
 
     window.addEventListener("pointerdown", (e) => {
@@ -740,7 +747,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           });
         } catch (err) {
-          console.warn(`[Inserts] Failed reading YAML from ${yamlUrl}:`, err);
         }
       }
 
@@ -951,7 +957,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
         } catch (e) {
-          console.warn(`Could not load insert YML file at ${insertObj.ymlUrl}`, e);
         }
 
         insertObj.entities = insertEntities;
@@ -969,6 +974,11 @@ document.addEventListener("DOMContentLoaded", () => {
           if (item.rawX !== null && item.rawX < minX) minX = item.rawX;
           if (item.rawY !== null && item.rawY > maxY) maxY = item.rawY;
         });
+
+        window.__mapTileOrigin = {
+          minX: minX === Infinity ? 0 : minX,
+          maxY: maxY === -Infinity ? 0 : maxY
+        };
 
           const parsed = rawEntities.map(item => ({
             proto: item.proto,
@@ -1189,8 +1199,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
           renderInsertControls();
           filterActiveEntities();
+
+          if (typeof window.onAreaDataMapLoaded === "function") {
+            window.onAreaDataMapLoaded(mapFolderName);
+          }
         } catch (err) {
-          console.warn("Map file failed to load or parse:", err);
         }
       }
 
